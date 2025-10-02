@@ -684,14 +684,19 @@ export class Fireberry implements INodeType {
 							if (options && options.length > 0 && type === 'options') {
 								// Both Picklist and Lookup use direct options in resourceMapper
 								fieldDef.options = options;
-								// Don't use searchable list for better compatibility
-								fieldDef.removeListSearch = true;
 							}
 
 							return fieldDef;
 						});
 
 					const mappedFields = await Promise.all(mappedFieldsPromises);
+
+					// Sort fields alphabetically by display name for easier search
+					mappedFields.sort((a: any, b: any) => {
+						const nameA = a.displayName || a.id || '';
+						const nameB = b.displayName || b.id || '';
+						return nameA.localeCompare(nameB);
+					});
 
 					return {
 						fields: mappedFields,

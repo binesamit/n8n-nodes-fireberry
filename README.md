@@ -312,6 +312,12 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.7.4 (2025-10-02)
+- ✅ **Search now works** in "Add field to send" dropdown!
+- 🐛 Fixed: Removed `removeListSearch: true` that was blocking search
+- 📊 Fields now sorted alphabetically for easier navigation
+- 🔍 n8n's built-in search now available in field selection
+
 ### v3.7.3 (2025-10-02)
 - 🐛 **Query Fix**: Improved handling of multiple rules
 - ✅ combineOperation defaults to 'and' if not specified
