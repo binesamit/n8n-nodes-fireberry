@@ -350,15 +350,17 @@ export class Fireberry implements INodeType {
 							{
 								displayName: 'Value',
 								name: 'value',
-								type: 'string',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getQueryFieldValue',
+								},
 								displayOptions: {
 									hide: {
 										operator: ['null', 'notnull'],
 									},
 								},
 								default: '',
-								placeholder: 'e.g., Active, 123, 2025-01-01',
-								description: 'Value to compare against. For Lookup fields, you can use Advanced mode or expressions to get the record ID.',
+								description: 'Select or enter a value to compare against. For Picklist and Lookup fields, available options will load automatically.',
 							},
 							{
 								displayName: 'Combine With',
@@ -514,7 +516,7 @@ export class Fireberry implements INodeType {
 						return [];
 					}
 
-					// Map fields to dropdown options
+					// Map fields to dropdown options with type information
 					const options = fields
 						.filter((field: any) => {
 							// Filter out internal/system fields
@@ -526,10 +528,14 @@ export class Fireberry implements INodeType {
 						.map((field: any) => {
 							const fieldName = field.name || field.fieldName || '';
 							const displayName = field.displayName || field.label || fieldName;
+							const fieldType = field.systemFieldTypeId || '';
+
+							// Encode field type in the value: fieldName|fieldType
+							const valueWithType = `${fieldName}|${fieldType}`;
 
 							return {
 								name: displayName,
-								value: fieldName,
+								value: valueWithType,
 							};
 						})
 						.sort((a: any, b: any) => a.name.localeCompare(b.name));
@@ -538,6 +544,164 @@ export class Fireberry implements INodeType {
 				} catch (error) {
 					console.error('Error loading query fields:', error);
 					return [];
+				}
+			},
+
+			// Load values for selected field in query builder
+			async getQueryFieldValue(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				try {
+					const objectType = this.getNodeParameter('objectType') as string;
+
+					if (!objectType) {
+						return [{
+							name: 'Please select Object Type first',
+							value: '',
+						}];
+					}
+
+					// Try to get the selected field with type from the current parameter path
+					let selectedFieldWithType: string | undefined;
+					let selectedFieldName: string | undefined;
+					let selectedFieldType: string | undefined;
+
+					try {
+						// Get the current parameter path to find which rule we're in
+						const currentPath = (this as any).getNodeParameter?.$getCurrentParameterPath?.() || '';
+
+						// Try to extract field value from queryRules
+						const queryRules = this.getNodeParameter('queryRules') as any;
+						const rules = queryRules?.rules || [];
+
+						// Parse the path to find the rule index
+						const ruleIndexMatch = currentPath.match(/rules\[(\d+)\]/);
+						if (ruleIndexMatch && rules.length > 0) {
+							const ruleIndex = parseInt(ruleIndexMatch[1], 10);
+							if (rules[ruleIndex] && rules[ruleIndex].field) {
+								selectedFieldWithType = rules[ruleIndex].field;
+							}
+						}
+
+						// Fallback: try last rule
+						if (!selectedFieldWithType && rules.length > 0) {
+							const lastRule = rules[rules.length - 1];
+							if (lastRule?.field) {
+								selectedFieldWithType = lastRule.field;
+							}
+						}
+					} catch (e) {
+						// Fallback - will return message to select field first
+					}
+
+					if (!selectedFieldWithType) {
+						return [{
+							name: 'Please select a Field first',
+							value: '',
+						}];
+					}
+
+					// Parse field|type
+					const parts = selectedFieldWithType.split('|');
+					selectedFieldName = parts[0];
+					selectedFieldType = parts[1] || '';
+
+					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
+					const field = fields.find((f: any) =>
+						(f.name || f.fieldName) === selectedFieldName
+					);
+
+					if (!field) {
+						return [{
+							name: 'Field not found - enter manually',
+							value: '',
+						}];
+					}
+
+					const displayName = field.displayName || field.label || selectedFieldName;
+					const options: INodePropertyOptions[] = [];
+
+					// Load Picklist values
+					if (selectedFieldType === 'be84ccec-c7c9-47dd-81fc-91cc92c8fcd9') {
+						try {
+							const fieldDetailsResponse = await fireberryApiRequest.call(
+								this,
+								'GET',
+								`/metadata/records/${objectType}/fields/${selectedFieldName}`,
+								{},
+							);
+
+							const picklistOptions = fieldDetailsResponse[0]?.data?.picklistOptions ||
+												   fieldDetailsResponse.data?.picklistOptions || [];
+
+							picklistOptions.forEach((option: any) => {
+								options.push({
+									name: option.label || option.text,
+									value: option.text || option.label,
+								});
+							});
+						} catch (error) {
+							console.error('Error loading picklist values:', error);
+						}
+					}
+					// Load Lookup values
+					else if (selectedFieldType === 'a8fcdf65-91bc-46fd-82f6-1234758345a1') {
+						try {
+							const fieldDetailsResponse = await fireberryApiRequest.call(
+								this,
+								'GET',
+								`/metadata/records/${objectType}/fields/${selectedFieldName}`,
+								{},
+							);
+
+							const fieldObjectType = fieldDetailsResponse[0]?.data?.fieldObjectType ||
+												   fieldDetailsResponse.data?.fieldObjectType;
+
+							if (fieldObjectType) {
+								const recordsResponse = await fireberryApiRequest.call(
+									this,
+									'POST',
+									'/api/query',
+									{
+										objecttype: parseInt(fieldObjectType, 10),
+										fields: '*',
+										page_size: 50,
+										page_number: 1,
+									},
+								);
+
+								const records = recordsResponse.value || recordsResponse.data || [];
+								const primaryField = recordsResponse.primaryField || 'name';
+								const primaryKey = recordsResponse.primaryKey || 'id';
+
+								records.forEach((record: any) => {
+									const recordId = record[primaryKey] || record.id;
+									const recordName = record[primaryField] || recordId;
+
+									options.push({
+										name: `${recordName}`,
+										value: recordId,
+										description: `ID: ${recordId}`,
+									});
+								});
+							}
+						} catch (error) {
+							console.error('Error loading lookup values:', error);
+						}
+					}
+
+					if (options.length === 0) {
+						return [{
+							name: `No dropdown values for ${displayName} - enter manually`,
+							value: '',
+						}];
+					}
+
+					return options;
+				} catch (error) {
+					console.error('Error loading query field values:', error);
+					return [{
+						name: 'Error loading values - enter manually',
+						value: '',
+					}];
 				}
 			},
 		},
@@ -812,7 +976,9 @@ export class Fireberry implements INodeType {
 
 							for (let j = 0; j < rules.length; j++) {
 								const rule = rules[j];
-								const field = rule.field;
+								// Extract field name from "fieldName|fieldType" format
+								const fieldWithType = rule.field;
+								const field = fieldWithType ? fieldWithType.split('|')[0] : '';
 								const operator = rule.operator;
 								const value = rule.value;
 

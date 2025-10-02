@@ -14,7 +14,8 @@
       "Bash(npx eslint:*)",
       "Bash(git commit:*)",
       "Read(//d/**)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(fieldType\"\n   - Value dropdown automatically detects Picklist vs Lookup fields\n   - Loads appropriate options based on field type\n\n✅ Picklist support:\n   - Shows dropdown with all available options\n   - Example: \"פתוח\", \"סגור\", \"ממתין\" for status fields\n\n✅ Lookup support:\n   - Shows dropdown with related records from target Object Type\n   - Example: Contact names, Account names, User names\n   - Displays up to 50 records per lookup field\n\n✅ Improved UX:\n   - Just like Create/Update operations\n   - No need to manually enter GUIDs for lookups\n   - No need to remember exact Picklist text\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
