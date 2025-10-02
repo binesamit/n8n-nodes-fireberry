@@ -301,35 +301,35 @@ export class Fireberry implements INodeType {
 								options: [
 									{
 										name: 'Equals (=)',
-										value: '=',
+										value: 'equal',
 									},
 									{
 										name: 'Not Equals (≠)',
-										value: '!=',
+										value: 'notEqual',
 									},
 									{
 										name: 'Greater Than (>)',
-										value: '>',
+										value: 'greaterThan',
 									},
 									{
 										name: 'Less Than (<)',
-										value: '<',
+										value: 'lessThan',
 									},
 									{
 										name: 'Greater or Equal (≥)',
-										value: '>=',
+										value: 'greaterOrEqual',
 									},
 									{
 										name: 'Less or Equal (≤)',
-										value: '<=',
+										value: 'lessOrEqual',
 									},
 									{
 										name: 'Is Null',
-										value: 'null',
+										value: 'isNull',
 									},
 									{
 										name: 'Is Not Null',
-										value: 'notnull',
+										value: 'isNotNull',
 									},
 									{
 										name: 'Starts With',
@@ -344,7 +344,7 @@ export class Fireberry implements INodeType {
 										value: 'contains',
 									},
 								],
-								default: '=',
+								default: 'equal',
 								description: 'Comparison operator',
 							},
 							{
@@ -356,7 +356,7 @@ export class Fireberry implements INodeType {
 								},
 								displayOptions: {
 									hide: {
-										operator: ['null', 'notnull'],
+										operator: ['isNull', 'isNotNull'],
 									},
 								},
 								default: '',
@@ -555,113 +555,106 @@ export class Fireberry implements INodeType {
 						return [{ name: 'Select Object Type first', value: '' }];
 					}
 
-					// Try to get the selected field with type
-					let selectedFieldWithType: string | undefined;
-					try {
-						const queryRules = this.getNodeParameter('queryRules') as any;
-						const rules = queryRules?.rules || [];
-						if (rules.length > 0) {
-							const lastRule = rules[rules.length - 1];
-							if (lastRule?.field) {
-								selectedFieldWithType = lastRule.field;
-							}
-						}
-					} catch (e) {
-						// Ignore
-					}
-
-					if (!selectedFieldWithType) {
-						return [{ name: 'Select a Field first', value: '' }];
-					}
-
-					// Parse field|type
-					const parts = selectedFieldWithType.split('|');
-					const selectedFieldName = parts[0];
-					const selectedFieldType = parts[1] || '';
-
 					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
-					const field = fields.find((f: any) => (f.name || f.fieldName) === selectedFieldName);
+					const allOptions: INodePropertyOptions[] = [];
 
-					if (!field) {
-						return [{ name: 'Field not found', value: '' }];
-					}
+					// Load all Picklist and Lookup values
+					for (const field of fields) {
+						const fieldName = field.name || field.fieldName || '';
+						const displayName = field.displayName || field.label || fieldName;
+						const fieldType = field.systemFieldTypeId || '';
 
-					const options: INodePropertyOptions[] = [];
-
-					// Load Picklist values
-					if (selectedFieldType === 'be84ccec-c7c9-47dd-81fc-91cc92c8fcd9') {
-						try {
-							const fieldDetailsResponse = await fireberryApiRequest.call(
-								this,
-								'GET',
-								`/metadata/records/${objectType}/fields/${selectedFieldName}`,
-								{},
-							);
-
-							const picklistOptions = fieldDetailsResponse[0]?.data?.picklistOptions ||
-												   fieldDetailsResponse.data?.picklistOptions || [];
-
-							picklistOptions.forEach((option: any) => {
-								options.push({
-									name: option.label || option.text,
-									value: option.text || option.label,
-								});
-							});
-						} catch (error) {
-							console.error('Error loading picklist:', error);
+						// Skip internal fields
+						if (!fieldName || fieldName.startsWith('_') || fieldName.toLowerCase().includes('deleted')) {
+							continue;
 						}
-					}
-					// Load Lookup values
-					else if (selectedFieldType === 'a8fcdf65-91bc-46fd-82f6-1234758345a1') {
-						try {
-							const fieldDetailsResponse = await fireberryApiRequest.call(
-								this,
-								'GET',
-								`/metadata/records/${objectType}/fields/${selectedFieldName}`,
-								{},
-							);
 
-							const fieldObjectType = fieldDetailsResponse[0]?.data?.fieldObjectType ||
-												   fieldDetailsResponse.data?.fieldObjectType;
-
-							if (fieldObjectType) {
-								const recordsResponse = await fireberryApiRequest.call(
+						// Load Picklist values
+						if (fieldType === 'be84ccec-c7c9-47dd-81fc-91cc92c8fcd9') {
+							try {
+								const fieldDetailsResponse = await fireberryApiRequest.call(
 									this,
-									'POST',
-									'/api/query',
-									{
-										objecttype: parseInt(fieldObjectType, 10),
-										fields: '*',
-										page_size: 50,
-										page_number: 1,
-									},
+									'GET',
+									`/metadata/records/${objectType}/fields/${fieldName}`,
+									{},
 								);
 
-								const records = recordsResponse.value || recordsResponse.data || [];
-								const primaryField = recordsResponse.primaryField || 'name';
-								const primaryKey = recordsResponse.primaryKey || 'id';
+								const picklistOptions = fieldDetailsResponse[0]?.data?.picklistOptions ||
+													   fieldDetailsResponse.data?.picklistOptions || [];
 
-								records.forEach((record: any) => {
-									const recordId = record[primaryKey] || record.id;
-									const recordName = record[primaryField] || recordId;
-
-									options.push({
-										name: recordName,
-										value: recordId,
-										description: `ID: ${recordId}`,
+								picklistOptions.forEach((option: any) => {
+									allOptions.push({
+										name: `[${displayName}] ${option.label || option.text}`,
+										value: option.text || option.label,
+										description: `Picklist: ${displayName}`,
 									});
 								});
+							} catch (error) {
+								// Skip on error
 							}
-						} catch (error) {
-							console.error('Error loading lookup:', error);
+						}
+						// Load Lookup values
+						else if (fieldType === 'a8fcdf65-91bc-46fd-82f6-1234758345a1') {
+							try {
+								const fieldDetailsResponse = await fireberryApiRequest.call(
+									this,
+									'GET',
+									`/metadata/records/${objectType}/fields/${fieldName}`,
+									{},
+								);
+
+								const fieldObjectType = fieldDetailsResponse[0]?.data?.fieldObjectType ||
+													   fieldDetailsResponse.data?.fieldObjectType;
+
+								if (fieldObjectType) {
+									const recordsResponse = await fireberryApiRequest.call(
+										this,
+										'POST',
+										'/api/query',
+										{
+											objecttype: parseInt(fieldObjectType, 10),
+											fields: '*',
+											page_size: 50,
+											page_number: 1,
+										},
+									);
+
+									const records = recordsResponse.value || recordsResponse.data || [];
+									const primaryField = recordsResponse.primaryField || 'name';
+									const primaryKey = recordsResponse.primaryKey || 'id';
+
+									records.forEach((record: any) => {
+										const recordId = record[primaryKey] || record.id;
+										const recordName = record[primaryField] || recordId;
+
+										allOptions.push({
+											name: `[${displayName}] ${recordName}`,
+											value: recordId,
+											description: `Lookup: ${displayName}`,
+										});
+									});
+								}
+							} catch (error) {
+								// Skip on error
+							}
 						}
 					}
 
-					if (options.length === 0) {
-						return [{ name: 'No options available - enter manually', value: '' }];
+					// Sort by name
+					allOptions.sort((a, b) => a.name.localeCompare(b.name));
+
+					if (allOptions.length === 0) {
+						return [{ name: 'No dropdown values available - enter value manually', value: '' }];
 					}
 
-					return options;
+					// Add manual entry option at the top
+					allOptions.unshift({
+						name: '--- Enter value manually (for text/number fields) ---',
+						value: '',
+						description: 'Leave empty to enter a custom value',
+					});
+
+					return allOptions;
 				} catch (error) {
 					console.error('Error loading field values:', error);
 					return [{ name: 'Error - enter manually', value: '' }];
@@ -947,15 +940,28 @@ export class Fireberry implements INodeType {
 
 								let queryPart = '';
 
-								if (operator === 'null') {
+								// Map operator names to Fireberry syntax
+								const operatorMap: { [key: string]: string } = {
+									'equal': '=',
+									'notEqual': '!=',
+									'greaterThan': '>',
+									'lessThan': '<',
+									'greaterOrEqual': '>=',
+									'lessOrEqual': '<=',
+								};
+
+								if (operator === 'isNull') {
 									queryPart = `${field} = null`;
-								} else if (operator === 'notnull') {
+								} else if (operator === 'isNotNull') {
 									queryPart = `${field} != null`;
 								} else if (operator === 'startswith' || operator === 'endswith' || operator === 'contains') {
 									// String functions
 									queryPart = `${operator}(${field}, '${value}')`;
+								} else if (operatorMap[operator]) {
+									// Standard operators
+									queryPart = `${field} ${operatorMap[operator]} '${value}'`;
 								} else {
-									// Standard operators: =, !=, >, <, >=, <=
+									// Fallback
 									queryPart = `${field} ${operator} '${value}'`;
 								}
 

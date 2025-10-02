@@ -1,6 +1,6 @@
 {
   "name": "@bines/n8n-nodes-fireberry",
-  "version": "3.5.3",
+  "version": "3.5.4",
   "description": "n8n node for Fireberry CRM (formerly Powerlink) - Dynamic support for all objects",
   "keywords": [
     "n8n-community-node-package",

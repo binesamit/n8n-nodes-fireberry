@@ -312,6 +312,14 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.5.4 (2025-10-02)
+- 🐛 **Critical Fix**: Fixed operator dropdown triggering Expression mode (again!)
+- 🐛 Fixed Value dropdown not loading options
+- ✨ Value dropdown now shows all Picklist and Lookup values with field labels
+- ✨ Added "[Field Name]" prefix to help identify which field each value belongs to
+- ✨ Added "Enter manually" option for text/number fields
+- 🎨 Improved operator mapping (equal→=, notEqual→!=, etc.)
+
 ### v3.5.3 (2025-10-02)
 - 🎉 **Major Feature**: Dynamic Value dropdown in Query Builder!
 - ✨ Value field automatically detects Picklist and Lookup fields
