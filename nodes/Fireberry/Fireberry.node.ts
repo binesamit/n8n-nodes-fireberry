@@ -301,27 +301,27 @@ export class Fireberry implements INodeType {
 								options: [
 									{
 										name: 'Equals (=)',
-										value: 'eq',
+										value: '=',
 									},
 									{
 										name: 'Not Equals (≠)',
-										value: 'ne',
+										value: '!=',
 									},
 									{
 										name: 'Greater Than (>)',
-										value: 'gt',
+										value: '>',
 									},
 									{
 										name: 'Less Than (<)',
-										value: 'lt',
+										value: '<',
 									},
 									{
 										name: 'Greater or Equal (≥)',
-										value: 'ge',
+										value: '>=',
 									},
 									{
 										name: 'Less or Equal (≤)',
-										value: 'le',
+										value: '<=',
 									},
 									{
 										name: 'Is Null',
@@ -344,7 +344,7 @@ export class Fireberry implements INodeType {
 										value: 'contains',
 									},
 								],
-								default: 'eq',
+								default: '=',
 								description: 'Comparison operator',
 							},
 							{
@@ -357,7 +357,8 @@ export class Fireberry implements INodeType {
 									},
 								},
 								default: '',
-								description: 'Value to compare against',
+								placeholder: 'e.g., Active, 123, 2025-01-01',
+								description: 'Value to compare against. For Lookup fields, you can use Advanced mode or expressions to get the record ID.',
 							},
 							{
 								displayName: 'Combine With',
@@ -818,14 +819,14 @@ export class Fireberry implements INodeType {
 								let queryPart = '';
 
 								if (operator === 'null') {
-									queryPart = `${field} eq null`;
+									queryPart = `${field} = null`;
 								} else if (operator === 'notnull') {
-									queryPart = `${field} ne null`;
+									queryPart = `${field} != null`;
 								} else if (operator === 'startswith' || operator === 'endswith' || operator === 'contains') {
 									// String functions
 									queryPart = `${operator}(${field}, '${value}')`;
 								} else {
-									// Standard operators: eq, ne, gt, lt, ge, le
+									// Standard operators: =, !=, >, <, >=, <=
 									queryPart = `${field} ${operator} '${value}'`;
 								}
 

@@ -312,6 +312,12 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.5.1 (2025-10-02)
+- 🐛 **Critical Fix**: Fixed query operators to use Fireberry's correct syntax (`=`, `!=`, `>`, `<` instead of `eq`, `ne`, `gt`, `lt`)
+- 🐛 Fixed "One or more operators are invalid" error in Simple Query Builder
+- ✨ Added helpful description for lookup field values in queries
+- 📝 Improved placeholder text for query values
+
 ### v3.5.0 (2025-10-02)
 - 🎉 **Major Feature**: Visual Query Builder!
 - ✨ Simple Query Builder mode - Build queries visually like Make/Integromat
