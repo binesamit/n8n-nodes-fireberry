@@ -856,12 +856,10 @@ export class Fireberry implements INodeType {
 						const primaryKeyField = metadata[0]?.data?.PrimaryKey || metadata.data?.PrimaryKey;
 
 						if (primaryKeyField && body[primaryKeyField]) {
-							console.log(`Removing auto-generated primary key field: ${primaryKeyField}`);
 							delete body[primaryKeyField];
 						}
 					} catch (error) {
 						// If metadata fetch fails, continue without removing primary key
-						console.log('Could not fetch metadata to determine primary key field:', error);
 					}
 
 					responseData = await fireberryApiRequest.call(
@@ -874,9 +872,6 @@ export class Fireberry implements INodeType {
 				} else if (operation === 'update') {
 					const recordId = this.getNodeParameter('recordId', i) as string;
 					const columnsData = this.getNodeParameter('updateColumns', i) as any;
-
-					console.log('Update operation - recordId:', recordId);
-					console.log('Update operation - columnsData:', JSON.stringify(columnsData, null, 2));
 
 					let body: any = {};
 
@@ -902,9 +897,6 @@ export class Fireberry implements INodeType {
 							{ itemIndex: i },
 						);
 					}
-
-					console.log('Update body to send:', JSON.stringify(body, null, 2));
-					console.log('Update URL:', `/api/record/${objectType}/${recordId}`);
 
 					responseData = await fireberryApiRequest.call(
 						this,
@@ -939,8 +931,6 @@ export class Fireberry implements INodeType {
 					if (queryMode === 'simple') {
 						const queryRules = this.getNodeParameter('queryRules', i, {}) as any;
 						const rules = queryRules.rules || [];
-
-						console.log('Query rules received:', JSON.stringify(rules, null, 2));
 
 						if (rules.length > 0) {
 							const queryParts: string[] = [];
@@ -1021,9 +1011,6 @@ export class Fireberry implements INodeType {
 							}
 
 							query = queryParts.join(' ');
-
-							// Debug: log the built query
-							console.log('Built query from Simple mode:', query);
 						}
 					} else {
 						// Advanced mode - use custom query
@@ -1042,9 +1029,6 @@ export class Fireberry implements INodeType {
 						...(sortBy && { sort_by: sortBy }),
 						sort_type: sortType,
 					};
-
-					// Debug: log the full request body
-					console.log('Query API request body:', JSON.stringify(body, null, 2));
 
 					if (returnAll) {
 						const limit = this.getNodeParameter('limit', i, 0) as number;

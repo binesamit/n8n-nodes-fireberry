@@ -107,26 +107,27 @@ Picklist fields automatically display available options:
 
 All operations work with **any object type** in your Fireberry account:
 
-### Create
+### 📝 Create
 Create a new record with ResourceMapper for easy field mapping:
 - Auto-complete field names
 - Proper field type validation
 - Dynamic dropdowns for picklists and lookups
 - Support for custom fields
+- Automatic exclusion of auto-generated primary keys
 
-### Update
+### ✏️ Update
 Update an existing record by ID:
 - Specify only the fields you want to change
 - Same dynamic field support as Create
 - ResourceMapper for easy updates
 
-### Delete
+### 🗑️ Delete
 Delete a record by its ID.
 
-### Get
+### 🔍 Get
 Retrieve a single record by its ID with all fields.
 
-### Query
+### 🔎 Query
 Execute advanced queries with **two modes**:
 
 #### 🎯 Simple Query Builder (NEW in v3.5!)
@@ -144,6 +145,24 @@ Write custom OData query strings manually for complex scenarios:
 - **Page Size** - Control results per page
 - **Sorting** - Sort by any field (ascending/descending)
 - **Field Selection** - Choose specific fields or use `*` for all
+
+### 📎 Upload File
+Upload files and attachments to any Fireberry record:
+- Works with any object type (Account, Contact, Case, Task, etc.)
+- Supports all file types
+- Proper MIME type detection
+- Handles binary data from form submissions, HTTP requests, and other sources
+- Endpoint: `POST /api/v2/record/{objectid}/{recordid}/files`
+
+**Note:** Check docker logs to see available binary field names if you encounter errors.
+
+### 📝 Create Note
+Create notes attached to records or standalone:
+- **Note Text** - Supports plain text and HTML formatting
+- **Related Record** - Optionally attach to any record (Account, Contact, etc.)
+- **Parent Note** - Create threaded replies to existing notes
+- Works with Object Type codes for flexible record linking
+- Endpoint: `POST /api/record/note`
 
 ## Query Modes
 
@@ -303,14 +322,33 @@ Example: For `primarycontactid` (Primary Contact field):
 - Field names remain the same
 - New features available immediately for new nodes
 
-## Resources
+## Additional Resources
 
-* [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
-* [Fireberry API Documentation](https://developers.fireberry.com/)
-* [Fireberry Support](https://www.fireberry.com/articles/getting-started-with-rest-api)
-* [GitHub Repository](https://github.com/binesamit/n8n-nodes-fireberry)
+- [Fireberry API Getting Started Guide](https://developers.fireberry.com/reference/getting-started-with-rest-api) - Official REST API documentation
+- [Fireberry Developer Documentation](https://developers.fireberry.com/docs/getting-started) - Complete developer guide
+- [n8n Documentation](https://docs.n8n.io/) - Learn more about n8n workflow automation
+
+## Support
+
+If you encounter any issues or have questions:
+
+1. Check the [Fireberry API Documentation](https://developers.fireberry.com/)
+2. Review the [n8n Community Nodes Guide](https://docs.n8n.io/integrations/community-nodes/)
+3. Open an issue on [GitHub](https://github.com/binesamit/n8n-nodes-fireberry/issues)
 
 ## Changelog
+
+### v3.9.2 (2025-10-02)
+- 🧹 **Cleanup: Removed unnecessary debug logs**
+  - Removed console.log from Create, Update, and Query operations
+  - Kept Upload File logs for troubleshooting binary field names
+  - Cleaner production code
+- 📚 **Documentation: Complete English update**
+  - Added comprehensive operations documentation (Upload File, Create Note)
+  - Added Additional Resources section with official Fireberry links
+  - Added Disclaimer section
+  - Improved operation descriptions with emojis
+  - Better structure and readability
 
 ### v3.9.1 (2025-10-02)
 - 🐛 **FIX: Upload File debug logging**
@@ -485,6 +523,14 @@ Example: For `primarycontactid` (Primary Contact field):
 ## License
 
 [MIT](LICENSE)
+
+## Disclaimer
+
+This project is provided "as is", without any warranty of any kind, express or implied. Use it at your own risk.
+
+The purpose of this repository is to share knowledge and provide tools for the community. The maintainers are not responsible for any issues, damages, or losses caused by the use of this code.
+
+For the official Fireberry API documentation, please refer to: 👉 https://developers.fireberry.com/docs/getting-started
 
 ## Contributing
 
