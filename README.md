@@ -312,6 +312,13 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.9.1 (2025-10-02)
+- 🐛 **FIX: Upload File debug logging**
+  - Added console logs to show available binary field names
+  - Helps troubleshoot "binary field not found" errors
+  - Improved field description with common names hint
+  - Logs show: available fields vs. requested field name
+
 ### v3.9.0 (2025-10-02)
 - 📎 **NEW: Upload File operation** - Upload files to any record
   - Upload files via `/api/v2/record/{objectid}/{recordid}/files`

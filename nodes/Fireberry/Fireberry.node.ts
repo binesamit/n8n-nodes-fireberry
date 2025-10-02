@@ -488,7 +488,9 @@ export class Fireberry implements INodeType {
 				},
 				default: 'data',
 				required: true,
-				description: 'Name of the binary property containing the file',
+				placeholder: 'e.g., data',
+				hint: 'The name is case-sensitive. Check the input data to see available binary fields.',
+				description: 'Name of the binary property containing the file. Common names: "data", "file", "attachment". Form fields are usually named "data".',
 			},
 
 			// ==============================
@@ -1072,6 +1074,12 @@ export class Fireberry implements INodeType {
 					// Upload File operation
 					const recordId = this.getNodeParameter('recordIdForFile', i) as string;
 					const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i, 'data') as string;
+
+					// Debug: Log available binary fields
+					const itemBinary = items[i].binary || {};
+					const availableBinaryFields = Object.keys(itemBinary);
+					console.log('Upload File - Available binary fields:', availableBinaryFields);
+					console.log('Upload File - Looking for field:', binaryPropertyName);
 
 					// Get binary data
 					const binaryData = this.helpers.assertBinaryData(i, binaryPropertyName);
