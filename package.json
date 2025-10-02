@@ -1,5 +1,5 @@
 {
-  "name": "n8n-nodes-fireberry",
+  "name": "@bines/n8n-nodes-fireberry",
   "version": "1.0.0",
   "description": "n8n node for Fireberry CRM (formerly Powerlink)",
   "keywords": [
@@ -25,9 +25,9 @@
     "build": "tsc && gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
-    "lint": "eslint nodes credentials package.json",
-    "lintfix": "eslint nodes credentials package.json --fix",
-    "prepublishOnly": "npm run build && npm run lint"
+    "lint": "eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\" package.json",
+    "lintfix": "eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\" package.json --fix",
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "dist"

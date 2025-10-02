@@ -1,4 +1,4 @@
-# n8n-nodes-fireberry
+# @bines/n8n-nodes-fireberry
 
 This is an n8n community node for [Fireberry CRM](https://www.fireberry.com/) (formerly Powerlink).
 
@@ -14,7 +14,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 1. Go to **Settings > Community Nodes**.
 2. Select **Install**.
-3. Enter `n8n-nodes-fireberry` in **Enter npm package name**.
+3. Enter `@bines/n8n-nodes-fireberry` in **Enter npm package name**.
 4. Agree to the risks and select **Install**.
 
 ### Manual Installation
@@ -22,7 +22,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 To use this node, install it locally:
 
 ```bash
-npm install n8n-nodes-fireberry
+npm install @bines/n8n-nodes-fireberry
 ```
 
 ## Credentials
