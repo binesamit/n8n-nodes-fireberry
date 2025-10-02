@@ -312,6 +312,20 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.9.0 (2025-10-02)
+- 📎 **NEW: Upload File operation** - Upload files to any record
+  - Upload files via `/api/v2/record/{objectid}/{recordid}/files`
+  - Supports all file types with proper MIME type handling
+  - Works with any Fireberry object (Account, Contact, Case, etc.)
+- 📝 **NEW: Create Note operation** - Create notes attached to records
+  - Create standalone notes or attach to any record
+  - Supports HTML formatting in note text
+  - Optional: Reply to existing notes (parent note ID)
+- 🔧 **FIX: Auto-generated primary key fields** excluded from Create
+  - Automatically removes primary key fields (e.g., `activitylogid`) when creating records
+  - Prevents "Bad request" errors when using resourceMapper UI
+  - Works for all object types dynamically via metadata
+
 ### v3.8.0 (2025-10-02)
 - 🎯 **MAJOR FIX: Query with multiple fields now works!**
 - ✅ Fixed Fireberry query syntax based on official documentation

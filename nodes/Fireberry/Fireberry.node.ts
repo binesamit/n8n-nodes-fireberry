@@ -7,6 +7,7 @@ import {
 	ILoadOptionsFunctions,
 	INodePropertyOptions,
 	INodeProperties,
+	IRequestOptions,
 } from 'n8n-workflow';
 
 import {
@@ -88,6 +89,18 @@ export class Fireberry implements INodeType {
 						value: 'query',
 						description: 'Query records with advanced filters',
 						action: 'Query records',
+					},
+					{
+						name: 'Upload File',
+						value: 'uploadFile',
+						description: 'Upload a file to a record',
+						action: 'Upload a file',
+					},
+					{
+						name: 'Create Note',
+						value: 'createNote',
+						description: 'Create a note attached to a record',
+						action: 'Create a note',
 					},
 				],
 				default: 'create',
@@ -447,6 +460,93 @@ export class Fireberry implements INodeType {
 					},
 				],
 			},
+
+			// ==============================
+			// UPLOAD FILE OPERATION
+			// ==============================
+			{
+				displayName: 'Record ID',
+				name: 'recordIdForFile',
+				type: 'string',
+				displayOptions: {
+					show: {
+						operation: ['uploadFile'],
+					},
+				},
+				default: '',
+				required: true,
+				description: 'GUID of the record to attach the file to',
+			},
+			{
+				displayName: 'Input Binary Field',
+				name: 'binaryPropertyName',
+				type: 'string',
+				displayOptions: {
+					show: {
+						operation: ['uploadFile'],
+					},
+				},
+				default: 'data',
+				required: true,
+				description: 'Name of the binary property containing the file',
+			},
+
+			// ==============================
+			// CREATE NOTE OPERATION
+			// ==============================
+			{
+				displayName: 'Note Text',
+				name: 'noteText',
+				type: 'string',
+				typeOptions: {
+					rows: 4,
+				},
+				displayOptions: {
+					show: {
+						operation: ['createNote'],
+					},
+				},
+				default: '',
+				required: true,
+				placeholder: 'Enter note content (supports HTML)',
+				description: 'Content of the note. You can use HTML for formatting.',
+			},
+			{
+				displayName: 'Related Record ID',
+				name: 'noteObjectId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						operation: ['createNote'],
+					},
+				},
+				default: '',
+				description: 'GUID of the record to attach this note to (optional)',
+			},
+			{
+				displayName: 'Related Object Type',
+				name: 'noteObjectTypeCode',
+				type: 'number',
+				displayOptions: {
+					show: {
+						operation: ['createNote'],
+					},
+				},
+				default: 0,
+				description: 'Object type code of the related record (required if Related Record ID is set)',
+			},
+			{
+				displayName: 'Parent Note ID',
+				name: 'parentNoteId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						operation: ['createNote'],
+					},
+				},
+				default: '',
+				description: 'GUID of parent note to create a reply (optional)',
+			},
 		],
 	};
 
@@ -748,6 +848,20 @@ export class Fireberry implements INodeType {
 						);
 					}
 
+					// Remove auto-generated primary key field if present
+					try {
+						const metadata = await fireberryApiRequest.call(this, 'GET', `/metadata/records/${objectType}`, {});
+						const primaryKeyField = metadata[0]?.data?.PrimaryKey || metadata.data?.PrimaryKey;
+
+						if (primaryKeyField && body[primaryKeyField]) {
+							console.log(`Removing auto-generated primary key field: ${primaryKeyField}`);
+							delete body[primaryKeyField];
+						}
+					} catch (error) {
+						// If metadata fetch fails, continue without removing primary key
+						console.log('Could not fetch metadata to determine primary key field:', error);
+					}
+
 					responseData = await fireberryApiRequest.call(
 						this,
 						'POST',
@@ -954,6 +1068,68 @@ export class Fireberry implements INodeType {
 
 						responseData = response.value || response.data || response;
 					}
+				} else if (operation === 'uploadFile') {
+					// Upload File operation
+					const recordId = this.getNodeParameter('recordIdForFile', i) as string;
+					const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i, 'data') as string;
+
+					// Get binary data
+					const binaryData = this.helpers.assertBinaryData(i, binaryPropertyName);
+					const dataBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
+
+					// Prepare multipart form data
+					const formData: any = {
+						file: {
+							value: dataBuffer,
+							options: {
+								filename: binaryData.fileName || 'file',
+								contentType: binaryData.mimeType,
+							},
+						},
+					};
+
+					// Upload file using /api/v2/record/{objectid}/{recordid}/files
+					const credentials = await this.getCredentials('fireberryApi');
+					const options: IRequestOptions = {
+						method: 'POST',
+						formData,
+						url: `${credentials.baseUrl}/api/v2/record/${objectType}/${recordId}/files`,
+						headers: {
+							'tokenid': credentials.apiToken as string,
+						},
+						json: true,
+					};
+
+					responseData = await this.helpers.request(options);
+
+				} else if (operation === 'createNote') {
+					// Create Note operation
+					const noteText = this.getNodeParameter('noteText', i) as string;
+					const noteObjectId = this.getNodeParameter('noteObjectId', i, '') as string;
+					const noteObjectTypeCode = this.getNodeParameter('noteObjectTypeCode', i, 0) as number;
+					const parentNoteId = this.getNodeParameter('parentNoteId', i, '') as string;
+
+					const body: any = {
+						notetext: noteText,
+					};
+
+					// Add optional fields
+					if (noteObjectId) {
+						body.objectid = noteObjectId;
+					}
+					if (noteObjectTypeCode) {
+						body.objecttypecode = noteObjectTypeCode;
+					}
+					if (parentNoteId) {
+						body.parentnoteid = parentNoteId;
+					}
+
+					responseData = await fireberryApiRequest.call(
+						this,
+						'POST',
+						'/api/record/note',
+						body,
+					);
 				}
 
 				const executionData = this.helpers.constructExecutionMetaData(
