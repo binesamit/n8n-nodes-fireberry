@@ -312,6 +312,15 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.8.0 (2025-10-02)
+- 🎯 **MAJOR FIX: Query with multiple fields now works!**
+- ✅ Fixed Fireberry query syntax based on official documentation
+- 📋 Each condition now wrapped in parentheses: `(field = value)`
+- 🔤 Combine operators uppercase: `AND` / `OR` instead of `and` / `or`
+- 🔧 Correct operators: `is-null`, `is-not-null`, `start-with`, `end-with`
+- 📚 Added documentation link - click "Docs" button in node
+- 🌐 Query example: `(statuscode = 6) AND (originatingleadcode = 9)`
+
 ### v3.7.5 (2025-10-02)
 - 🔍 **Enhanced debug logging** for Query troubleshooting
 - 📊 Logs show: rules data, built query, API request body

@@ -38,6 +38,7 @@ export class Fireberry implements INodeType {
 				required: true,
 			},
 		],
+		documentationUrl: 'https://developers.fireberry.com/docs/queries',
 		properties: [
 			// Object Type Selection
 			{
@@ -877,25 +878,29 @@ export class Fireberry implements INodeType {
 								};
 
 								if (operator === 'isNull') {
-									queryPart = `${field} = null`;
+									queryPart = `(${field} is-null)`;
 								} else if (operator === 'isNotNull') {
-									queryPart = `${field} != null`;
-								} else if (operator === 'startswith' || operator === 'endswith' || operator === 'contains') {
-									// String functions always need quoted strings
-									queryPart = `${operator}(${field}, '${value}')`;
+									queryPart = `(${field} is-not-null)`;
+								} else if (operator === 'startswith') {
+									queryPart = `(${field} start-with '${value}')`;
+								} else if (operator === 'endswith') {
+									queryPart = `(${field} end-with '${value}')`;
+								} else if (operator === 'contains') {
+									queryPart = `(${field} start-with '%${value}%')`;
 								} else if (operatorMap[operator]) {
 									// Standard operators
-									queryPart = `${field} ${operatorMap[operator]} ${formatValue(value)}`;
+									queryPart = `(${field} ${operatorMap[operator]} ${formatValue(value)})`;
 								} else {
 									// Fallback
-									queryPart = `${field} ${operator} ${formatValue(value)}`;
+									queryPart = `(${field} ${operator} ${formatValue(value)})`;
 								}
 
 								queryParts.push(queryPart);
 
 								// Add combine operation if not the last rule
 								if (j < rules.length - 1) {
-									queryParts.push(rule.combineOperation || 'and');
+									const combineOp = (rule.combineOperation || 'and').toUpperCase();
+									queryParts.push(combineOp);
 								}
 							}
 
