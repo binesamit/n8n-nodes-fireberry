@@ -312,6 +312,14 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.6.0 (2025-10-02)
+- 🎉 **Major Feature**: Picklist dropdown support in Query Builder!
+- ✨ New "Value Type" option: "Enter Manually" or "Select from Picklist"
+- ✨ Picklist dropdown shows all available options from all Picklist fields with [Field Name] prefix
+- ✨ Manual entry still available for text, numbers, dates, and GUIDs
+- 🐛 Fixed multiple rules query building (added debug logging)
+- 🎨 Improved UX for building queries with Picklist values
+
 ### v3.5.6 (2025-10-02)
 - 🐛 **Critical Fix**: Smart value formatting for different data types
 - ✨ Numbers now work correctly (no quotes: `123` instead of `'123'`)

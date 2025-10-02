@@ -15,7 +15,8 @@
       "Bash(git commit:*)",
       "Read(//d/**)",
       "Bash(cat:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(npm view:*)"
     ],
     "deny": [],
     "ask": []

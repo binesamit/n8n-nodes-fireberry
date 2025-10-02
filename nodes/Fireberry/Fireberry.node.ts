@@ -348,18 +348,60 @@ export class Fireberry implements INodeType {
 								description: 'Comparison operator',
 							},
 							{
+								displayName: 'Value Type',
+								name: 'valueType',
+								type: 'options',
+								options: [
+									{
+										name: 'Enter Manually',
+										value: 'manual',
+									},
+									{
+										name: 'Select from Picklist',
+										value: 'picklist',
+									},
+								],
+								default: 'manual',
+								displayOptions: {
+									hide: {
+										operator: ['isNull', 'isNotNull'],
+									},
+								},
+								description: 'How to specify the value',
+							},
+							{
 								displayName: 'Value',
 								name: 'value',
 								type: 'string',
 								displayOptions: {
+									show: {
+										valueType: ['manual'],
+									},
 									hide: {
 										operator: ['isNull', 'isNotNull'],
 									},
 								},
 								default: '',
 								placeholder: 'e.g., פתוח, 123, 2025-01-01, or fc7af7af-... (GUID)',
-								description: 'Value to compare against. For Picklist fields, enter the exact text (e.g., "פתוח"). For Lookup fields, enter the record ID (GUID). Use expressions {{ $json.fieldname }} for dynamic values, or switch to Advanced mode for easier selection.',
-								hint: 'Tip: For Picklist options or Lookup record IDs, check the Create/Update operation dropdowns to see available values, then copy the exact value here.',
+								description: 'Value to compare against. Enter text, numbers, dates (YYYY-MM-DD), or GUIDs. Use expressions {{ $json.fieldname }} for dynamic values.',
+							},
+							{
+								displayName: 'Picklist Value',
+								name: 'value',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getPicklistValuesForQuery',
+								},
+								displayOptions: {
+									show: {
+										valueType: ['picklist'],
+									},
+									hide: {
+										operator: ['isNull', 'isNotNull'],
+									},
+								},
+								default: '',
+								description: 'Select a value from the Picklist field options',
 							},
 							{
 								displayName: 'Combine With',
@@ -542,6 +584,55 @@ export class Fireberry implements INodeType {
 					return options;
 				} catch (error) {
 					console.error('Error loading query fields:', error);
+					return [];
+				}
+			},
+
+			// Load Picklist values for the selected field in Query Builder
+			async getPicklistValuesForQuery(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const objectType = this.getNodeParameter('objectType') as string;
+
+				if (!objectType) {
+					return [];
+				}
+
+				try {
+					// Get the current rule's field value
+					// Note: In fixedCollection, we can't directly access the current item's field value
+					// So we'll load all Picklist fields and their values
+					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
+
+					if (!fields || fields.length === 0) {
+						return [];
+					}
+
+					const picklistOptions: INodePropertyOptions[] = [];
+
+					// Find all Picklist fields and their values
+					for (const field of fields) {
+						const fieldType = field.systemFieldTypeId || '';
+						const fieldName = field.name || field.fieldName || '';
+						const displayName = field.displayName || field.label || fieldName;
+
+						// Check if it's a Picklist field (systemFieldTypeId = 3)
+						if (fieldType === 3 || fieldType === '3') {
+							const picklistValues = field.picklistValues || [];
+
+							for (const picklistValue of picklistValues) {
+								const valueText = picklistValue.text || picklistValue.name || picklistValue.value || '';
+								if (valueText) {
+									picklistOptions.push({
+										name: `[${displayName}] ${valueText}`,
+										value: valueText,
+									});
+								}
+							}
+						}
+					}
+
+					return picklistOptions.sort((a, b) => a.name.localeCompare(b.name));
+				} catch (error) {
+					console.error('Error loading Picklist values for query:', error);
 					return [];
 				}
 			},
@@ -887,6 +978,9 @@ export class Fireberry implements INodeType {
 							}
 
 							query = queryParts.join(' ');
+
+							// Debug: log the built query
+							console.log('Built query from Simple mode:', query);
 						}
 					} else {
 						// Advanced mode - use custom query
