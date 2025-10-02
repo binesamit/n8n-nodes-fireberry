@@ -835,19 +835,47 @@ export class Fireberry implements INodeType {
 									'lessOrEqual': '<=',
 								};
 
+								// Helper function to format value
+								const formatValue = (val: string): string => {
+									if (!val) return "''";
+
+									// Check if it's a number (integer or decimal)
+									if (/^-?\d+(\.\d+)?$/.test(val)) {
+										return val; // No quotes for numbers
+									}
+
+									// Check if it's a GUID
+									if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
+										return `'${val}'`; // GUIDs need quotes
+									}
+
+									// Check if it's a date (YYYY-MM-DD format)
+									if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+										return val; // No quotes for dates
+									}
+
+									// Check if it's a datetime (YYYY-MM-DDTHH:MM:SS format)
+									if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
+										return val; // No quotes for datetime
+									}
+
+									// Default: string with quotes
+									return `'${val}'`;
+								};
+
 								if (operator === 'isNull') {
 									queryPart = `${field} = null`;
 								} else if (operator === 'isNotNull') {
 									queryPart = `${field} != null`;
 								} else if (operator === 'startswith' || operator === 'endswith' || operator === 'contains') {
-									// String functions
+									// String functions always need quoted strings
 									queryPart = `${operator}(${field}, '${value}')`;
 								} else if (operatorMap[operator]) {
 									// Standard operators
-									queryPart = `${field} ${operatorMap[operator]} '${value}'`;
+									queryPart = `${field} ${operatorMap[operator]} ${formatValue(value)}`;
 								} else {
 									// Fallback
-									queryPart = `${field} ${operator} '${value}'`;
+									queryPart = `${field} ${operator} ${formatValue(value)}`;
 								}
 
 								queryParts.push(queryPart);

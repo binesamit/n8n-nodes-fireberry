@@ -312,6 +312,14 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.5.6 (2025-10-02)
+- 🐛 **Critical Fix**: Smart value formatting for different data types
+- ✨ Numbers now work correctly (no quotes: `123` instead of `'123'`)
+- ✨ Dates now work correctly (no quotes: `2025-01-01` instead of `'2025-01-01'`)
+- ✨ GUIDs work correctly (with quotes: `'fc7af7af-...'`)
+- ✨ Text/strings work correctly (with quotes: `'תל אביב'`)
+- 🎯 Auto-detection of value type using regex patterns
+
 ### v3.5.5 (2025-10-02)
 - 🐛 **Critical Fix**: Changed Value field back to string input (was blocking manual entry)
 - ✨ Value now supports manual text entry for all field types
