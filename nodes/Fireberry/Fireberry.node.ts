@@ -104,6 +104,9 @@ export class Fireberry implements INodeType {
 						operation: ['create'],
 					},
 				},
+				typeOptions: {
+					loadOptionsMethod: 'getObjectFields',
+				},
 				options: [],
 				description: 'Fields to set on the new record. Available fields are loaded dynamically from your Fireberry account.',
 			},
@@ -136,6 +139,9 @@ export class Fireberry implements INodeType {
 					show: {
 						operation: ['update'],
 					},
+				},
+				typeOptions: {
+					loadOptionsMethod: 'getObjectFields',
 				},
 				options: [],
 				description: 'Fields to update on the record',
@@ -276,6 +282,27 @@ export class Fireberry implements INodeType {
 			// Load all available object types from Fireberry
 			async getAllObjects(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				return await getAllObjectTypes.call(this);
+			},
+
+			// Load fields for selected object type
+			async getObjectFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const objectType = this.getNodeParameter('objectType') as string;
+
+				if (!objectType) {
+					return [];
+				}
+
+				try {
+					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
+
+					return fields.map((field: any) => ({
+						name: `${field.displayName || field.name} (${field.name})`,
+						value: field.name,
+					})).sort((a: any, b: any) => a.name.localeCompare(b.name));
+				} catch (error) {
+					console.error('Error loading fields:', error);
+					return [];
+				}
 			},
 		},
 	};
