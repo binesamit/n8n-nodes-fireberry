@@ -312,6 +312,12 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.6.2 (2025-10-02)
+- 🔍 **Debug Version**: Added detailed console logging for Picklist dropdown
+- 🐛 Troubleshooting "No data" issue in Picklist Value dropdown
+- 📊 Logs show: objectType, fields count, Picklist fields found, values loaded
+- 🛠️ Temporary debug version to identify the root cause
+
 ### v3.6.1 (2025-10-02)
 - 🐛 **Critical Fix**: Picklist dropdown now loads values correctly
 - ✨ Uses dedicated API endpoint for each Picklist field

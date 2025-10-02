@@ -592,7 +592,10 @@ export class Fireberry implements INodeType {
 			async getPicklistValuesForQuery(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const objectType = this.getNodeParameter('objectType') as string;
 
+				console.log('getPicklistValuesForQuery called with objectType:', objectType);
+
 				if (!objectType) {
+					console.log('No objectType - returning empty array');
 					return [];
 				}
 
@@ -600,7 +603,10 @@ export class Fireberry implements INodeType {
 					// Get all fields metadata
 					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
 
+					console.log('Fields loaded:', fields?.length || 0);
+
 					if (!fields || fields.length === 0) {
+						console.log('No fields found - returning empty array');
 						return [];
 					}
 
@@ -614,9 +620,13 @@ export class Fireberry implements INodeType {
 
 						// Check if it's a Picklist field (systemFieldTypeId = 3)
 						if (fieldType === 3 || fieldType === '3') {
+							console.log(`Found Picklist field: ${fieldName} (${displayName}), type: ${fieldType}`);
+
 							try {
 								// Load values for this specific Picklist field
 								const values = await getPicklistValues.call(this, objectType, fieldName);
+
+								console.log(`Loaded ${values.length} values for ${fieldName}:`, values);
 
 								// Add each value with field name prefix
 								for (const val of values) {
@@ -631,6 +641,8 @@ export class Fireberry implements INodeType {
 							}
 						}
 					}
+
+					console.log(`Total Picklist options: ${picklistOptions.length}`, picklistOptions);
 
 					return picklistOptions.sort((a, b) => a.name.localeCompare(b.name));
 				} catch (error) {
