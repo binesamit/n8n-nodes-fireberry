@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial release - n8n-nodes-fireberry v1.0.0\n\n✅ תמיכה מלאה ב-CRUD operations עבור:\n   - Accounts (חברות)\n   - Contacts (אנשי קשר)  \n   - Cases (פניות)\n   - Tasks (משימות)\n\n✅ Query מתקדם עם כל האופרטורים של Fireberry API\n\n✅ Custom Fields דינמיים - טעינה אוטומטית מהמערכת\n\n✅ Pagination אוטומטי עם אפשרות Return All\n\n✅ טיפול משופר בשגיאות עם הודעות מפורטות\n\n✅ Type Safety מלא עם TypeScript\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,18 @@
+{
+	"node": "n8n-nodes-base.fireberry",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["CRM"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://developers.fireberry.com/"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/binesamit/n8n-nodes-fireberry"
+			}
+		]
+	}
+}
