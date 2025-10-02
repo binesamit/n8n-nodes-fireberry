@@ -240,12 +240,154 @@ export class Fireberry implements INodeType {
 				description: 'Page number to retrieve',
 			},
 			{
+				displayName: 'Query Mode',
+				name: 'queryMode',
+				type: 'options',
+				displayOptions: {
+					show: {
+						operation: ['query'],
+					},
+				},
+				options: [
+					{
+						name: 'Simple Query Builder',
+						value: 'simple',
+						description: 'Build queries visually with fields, operators, and values',
+					},
+					{
+						name: 'Advanced (Custom Query)',
+						value: 'advanced',
+						description: 'Write custom OData query string manually',
+					},
+				],
+				default: 'simple',
+				description: 'Choose how to build your query',
+			},
+			{
+				displayName: 'Query Rules',
+				name: 'queryRules',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				displayOptions: {
+					show: {
+						operation: ['query'],
+						queryMode: ['simple'],
+					},
+				},
+				default: {},
+				placeholder: 'Add Rule',
+				description: 'Add query rules to filter results',
+				options: [
+					{
+						name: 'rules',
+						displayName: 'Rules',
+						values: [
+							{
+								displayName: 'Field',
+								name: 'field',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getQueryFields',
+								},
+								default: '',
+								description: 'Field to filter on',
+							},
+							{
+								displayName: 'Operator',
+								name: 'operator',
+								type: 'options',
+								options: [
+									{
+										name: 'Equals (=)',
+										value: 'eq',
+									},
+									{
+										name: 'Not Equals (≠)',
+										value: 'ne',
+									},
+									{
+										name: 'Greater Than (>)',
+										value: 'gt',
+									},
+									{
+										name: 'Less Than (<)',
+										value: 'lt',
+									},
+									{
+										name: 'Greater or Equal (≥)',
+										value: 'ge',
+									},
+									{
+										name: 'Less or Equal (≤)',
+										value: 'le',
+									},
+									{
+										name: 'Is Null',
+										value: 'null',
+									},
+									{
+										name: 'Is Not Null',
+										value: 'notnull',
+									},
+									{
+										name: 'Starts With',
+										value: 'startswith',
+									},
+									{
+										name: 'Ends With',
+										value: 'endswith',
+									},
+									{
+										name: 'Contains',
+										value: 'contains',
+									},
+								],
+								default: 'eq',
+								description: 'Comparison operator',
+							},
+							{
+								displayName: 'Value',
+								name: 'value',
+								type: 'string',
+								displayOptions: {
+									hide: {
+										operator: ['null', 'notnull'],
+									},
+								},
+								default: '',
+								description: 'Value to compare against',
+							},
+							{
+								displayName: 'Combine With',
+								name: 'combineOperation',
+								type: 'options',
+								options: [
+									{
+										name: 'AND',
+										value: 'and',
+									},
+									{
+										name: 'OR',
+										value: 'or',
+									},
+								],
+								default: 'and',
+								description: 'How to combine with the next rule',
+							},
+						],
+					},
+				],
+			},
+			{
 				displayName: 'Query',
 				name: 'query',
 				type: 'string',
 				displayOptions: {
 					show: {
 						operation: ['query'],
+						queryMode: ['advanced'],
 					},
 				},
 				default: '',
@@ -352,6 +494,48 @@ export class Fireberry implements INodeType {
 					return options;
 				} catch (error) {
 					console.error('Error loading fields:', error);
+					return [];
+				}
+			},
+
+			// Load fields for query builder
+			async getQueryFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const objectType = this.getNodeParameter('objectType') as string;
+
+				if (!objectType) {
+					return [];
+				}
+
+				try {
+					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
+
+					if (!fields || fields.length === 0) {
+						return [];
+					}
+
+					// Map fields to dropdown options
+					const options = fields
+						.filter((field: any) => {
+							// Filter out internal/system fields
+							const fieldName = field.name || field.fieldName || '';
+							return fieldName &&
+								   !fieldName.startsWith('_') &&
+								   !fieldName.toLowerCase().includes('deleted');
+						})
+						.map((field: any) => {
+							const fieldName = field.name || field.fieldName || '';
+							const displayName = field.displayName || field.label || fieldName;
+
+							return {
+								name: displayName,
+								value: fieldName,
+							};
+						})
+						.sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+					return options;
+				} catch (error) {
+					console.error('Error loading query fields:', error);
 					return [];
 				}
 			},
@@ -614,7 +798,52 @@ export class Fireberry implements INodeType {
 					);
 
 				} else if (operation === 'query') {
-					const query = this.getNodeParameter('query', i, '') as string;
+					const queryMode = this.getNodeParameter('queryMode', i, 'simple') as string;
+					let query = '';
+
+					// Build query based on mode
+					if (queryMode === 'simple') {
+						const queryRules = this.getNodeParameter('queryRules', i, {}) as any;
+						const rules = queryRules.rules || [];
+
+						if (rules.length > 0) {
+							const queryParts: string[] = [];
+
+							for (let j = 0; j < rules.length; j++) {
+								const rule = rules[j];
+								const field = rule.field;
+								const operator = rule.operator;
+								const value = rule.value;
+
+								let queryPart = '';
+
+								if (operator === 'null') {
+									queryPart = `${field} eq null`;
+								} else if (operator === 'notnull') {
+									queryPart = `${field} ne null`;
+								} else if (operator === 'startswith' || operator === 'endswith' || operator === 'contains') {
+									// String functions
+									queryPart = `${operator}(${field}, '${value}')`;
+								} else {
+									// Standard operators: eq, ne, gt, lt, ge, le
+									queryPart = `${field} ${operator} '${value}'`;
+								}
+
+								queryParts.push(queryPart);
+
+								// Add combine operation if not the last rule
+								if (j < rules.length - 1) {
+									queryParts.push(rule.combineOperation || 'and');
+								}
+							}
+
+							query = queryParts.join(' ');
+						}
+					} else {
+						// Advanced mode - use custom query
+						query = this.getNodeParameter('query', i, '') as string;
+					}
+
 					const fields = this.getNodeParameter('fields', i, '*') as string;
 					const returnAll = this.getNodeParameter('returnAll', i, false) as boolean;
 					const sortBy = this.getNodeParameter('options.sortBy', i, '') as string;

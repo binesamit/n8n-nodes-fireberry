@@ -127,16 +127,47 @@ Delete a record by its ID.
 Retrieve a single record by its ID with all fields.
 
 ### Query
-Execute advanced queries with OData-style filters, pagination, and sorting:
+Execute advanced queries with **two modes**:
+
+#### 🎯 Simple Query Builder (NEW in v3.5!)
+Visual query builder similar to Make/Integromat:
+- **Field Selection** - Dropdown of all available fields from your Object Type
+- **Operator Selection** - Choose from: Equals, Not Equals, Greater Than, Less Than, Greater or Equal, Less or Equal, Is Null, Is Not Null, Starts With, Ends With, Contains
+- **Value Input** - Enter the value to compare
+- **AND/OR Logic** - Combine multiple rules with AND or OR
+- **Auto-Generated Query** - Query string is built automatically
+
+#### ⚙️ Advanced (Custom Query)
+Write custom OData query strings manually for complex scenarios:
 - **Return All** - Automatically paginate through all results
 - **Limit** - Specify maximum number of results
 - **Page Size** - Control results per page
 - **Sorting** - Sort by any field (ascending/descending)
 - **Field Selection** - Choose specific fields or use `*` for all
 
-## Query Syntax
+## Query Modes
 
-Fireberry supports powerful query operators:
+### Simple Query Builder
+
+Perfect for common filtering scenarios. Build queries visually:
+
+**Example 1: Find active customers with email**
+```
+Rule 1: statecode = 0 (Combine with AND)
+Rule 2: emailaddress1 Is Not Null
+```
+Result: `statecode eq '0' and emailaddress1 ne null`
+
+**Example 2: Find accounts starting with 'א' OR 'מ'**
+```
+Rule 1: accountname Starts With 'א' (Combine with OR)
+Rule 2: accountname Starts With 'מ'
+```
+Result: `startswith(accountname, 'א') or startswith(accountname, 'מ')`
+
+### Advanced Query Syntax
+
+Fireberry supports powerful OData query operators:
 
 - `eq` - Equal
 - `ne` - Not equal
@@ -152,7 +183,7 @@ Fireberry supports powerful query operators:
 - `endswith` - String ends with
 - `contains` - String contains
 
-### Query Examples:
+### Advanced Query Examples:
 
 ```
 accountname eq 'חברת דוגמה'
@@ -181,15 +212,30 @@ Fields:
   - ownerid: [Select from dropdown: "Amit Bines"]
 ```
 
-### Example 2: Query Active Contacts
+### Example 2: Query Active Contacts (Simple Query Builder)
 ```
 Object Type: איש קשר (Contact)
 Operation: Query
+Query Mode: Simple Query Builder
+Query Rules:
+  Rule 1:
+    - Field: emailaddress1
+    - Operator: Is Not Null
+    - Combine With: AND
+  Rule 2:
+    - Field: statecode
+    - Operator: Equals (=)
+    - Value: 0
 Return All: Yes
-Query: emailaddress1 ne null and statecode eq 0
 Fields: firstname,lastname,emailaddress1,mobilephone1,accountname
 Sort By: lastname
 Sort Type: Ascending
+```
+
+**Alternative using Advanced mode:**
+```
+Query Mode: Advanced (Custom Query)
+Query: emailaddress1 ne null and statecode eq 0
 ```
 
 ### Example 3: Update Case Status
@@ -265,6 +311,20 @@ Example: For `primarycontactid` (Primary Contact field):
 * [GitHub Repository](https://github.com/binesamit/n8n-nodes-fireberry)
 
 ## Changelog
+
+### v3.5.0 (2025-10-02)
+- 🎉 **Major Feature**: Visual Query Builder!
+- ✨ Simple Query Builder mode - Build queries visually like Make/Integromat
+- ✨ Field dropdown with all available fields from Object Type
+- ✨ 11 operators: Equals, Not Equals, Greater Than, Less Than, Greater or Equal, Less or Equal, Is Null, Is Not Null, Starts With, Ends With, Contains
+- ✨ AND/OR logic between rules
+- ✨ Auto-generated OData query strings
+- ✨ Advanced mode for custom queries (backward compatible)
+- 🎨 Improved UX for query building
+
+### v3.4.1 (2025-10-02)
+- 🎨 Added helpful description hints for "Refresh Field List" option
+- 📝 Improved UX guidance for resourceMapper
 
 ### v3.3.10 (2025-10-02)
 - 🎉 **Major Feature**: Dynamic dropdown support for Lookup fields!
