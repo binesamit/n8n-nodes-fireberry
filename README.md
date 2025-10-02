@@ -6,14 +6,16 @@ This is an n8n community node for [Fireberry CRM](https://www.fireberry.com/) (f
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
 
-## ✨ Version 2.0 - Fully Dynamic Node
+## ✨ Version 3.0 - Full Dynamic Support with ResourceMapper
 
-**v2.0** introduces a complete architectural overhaul with **dynamic object type support**:
+**v3.0** introduces advanced features with **full dynamic field support** including lookup fields:
 
 - 🎯 **Universal Node** - One node for ALL Fireberry objects (not just Account, Contact, Case, Task)
 - 🔄 **Dynamic Object Discovery** - Automatically loads all available objects from your Fireberry account
-- 📝 **Dynamic Field Loading** - Fields are loaded based on selected object type
-- 🚀 **Zero Maintenance** - No code changes needed when Fireberry schema changes
+- 📝 **Smart Field Loading** - Fields are loaded dynamically with proper types
+- 🔗 **Dynamic Lookup Fields** - Dropdown selection for related records (Contacts, Users, Accounts, etc.)
+- 📋 **Dynamic Picklist Fields** - Dropdown selection for status, categories, and other picklist values
+- 🚀 **ResourceMapper Integration** - Modern n8n field mapping with auto-complete and field matching
 - 🌐 **Future-Proof** - Works with new objects and fields without updates
 
 ## Installation
@@ -46,50 +48,91 @@ You need a Fireberry account to use this node.
 3. Go to **API Forms**
 4. Copy your **Token ID**
 
-## How It Works
+## Features
 
-### 1. Select Object Type
+### 🎯 Dynamic Object Type Support
 Choose from **all available objects** in your Fireberry account:
 - לקוח (Account/Customer)
 - איש קשר (Contact)
 - קריאת שירות (Case)
 - משימה (Task)
+- משתמש (User)
+- קמפיין (Campaign)
 - הזמנה (Order)
 - הצעת מחיר (Quote)
 - **...and any other objects in your Fireberry account!**
 
-### 2. Select Operation
-- **Create** - Create a new record
-- **Update** - Update an existing record
-- **Delete** - Delete a record
-- **Get** - Retrieve a single record by ID
-- **Query** - Execute advanced queries with filters
+### 📝 Smart Field Types
 
-### 3. Configure Fields
-Fields are loaded dynamically based on your selected object type. The node discovers:
-- Standard fields
-- Custom fields
-- Field types (string, number, date, email, phone, picklist, etc.)
-- Required vs optional fields
+The node automatically handles **all field types** with appropriate UI controls:
+
+1. **String** - Text input fields
+2. **Number** - Numeric input with validation
+3. **Phone** - Phone number fields
+4. **Email** - Email address fields with validation
+5. **URL** - Website URL fields
+6. **Textarea** - Long text/notes fields
+7. **Date** - Date picker
+8. **DateTime** - Date and time picker
+9. **Picklist** - 🔥 **Dropdown with values from Fireberry**
+10. **Lookup/Reference** - 🔥 **Dropdown with related records (Users, Contacts, Accounts, etc.)**
+11. **File/Document** - File attachments
+
+### 🔗 Dynamic Lookup Fields (NEW!)
+
+Lookup fields automatically display available records in a dropdown:
+- **Primary Contact** (primarycontactid) → Shows all Contacts
+- **Account Owner** (ownerid) → Shows all Users
+- **Parent Account** (parentaccountid) → Shows all Accounts
+- **Campaign** (campaignid) → Shows all Campaigns
+- **Any custom lookup field** → Automatically loads related records!
+
+Example:
+```
+When creating an Account:
+- Select "איש קשר עיקרי" (Primary Contact)
+- Choose from dropdown: "בנימין זאב", "נוי מור יוסף", "Amit Bines", etc.
+- The correct Contact ID is automatically used
+```
+
+### 📋 Dynamic Picklist Fields
+
+Picklist fields automatically display available options:
+- **Status** → Shows: חדש, בתהליך, לקוח פעיל, etc.
+- **Category** → Shows your custom categories
+- **Priority** → Shows priority levels
+- **Any custom picklist** → Automatically loads values!
 
 ## Supported Operations
 
 All operations work with **any object type** in your Fireberry account:
 
 ### Create
-Create a new record with any fields available for the selected object type.
+Create a new record with ResourceMapper for easy field mapping:
+- Auto-complete field names
+- Proper field type validation
+- Dynamic dropdowns for picklists and lookups
+- Support for custom fields
 
 ### Update
-Update an existing record by ID. Specify only the fields you want to change.
+Update an existing record by ID:
+- Specify only the fields you want to change
+- Same dynamic field support as Create
+- ResourceMapper for easy updates
 
 ### Delete
 Delete a record by its ID.
 
 ### Get
-Retrieve a single record by its ID.
+Retrieve a single record by its ID with all fields.
 
 ### Query
-Execute advanced queries with OData-style filters, pagination, and sorting.
+Execute advanced queries with OData-style filters, pagination, and sorting:
+- **Return All** - Automatically paginate through all results
+- **Limit** - Specify maximum number of results
+- **Page Size** - Control results per page
+- **Sorting** - Sort by any field (ascending/descending)
+- **Field Selection** - Choose specific fields or use `*` for all
 
 ## Query Syntax
 
@@ -105,6 +148,9 @@ Fireberry supports powerful query operators:
 - `or` - Logical OR
 - `null` - Check for NULL
 - `ne null` - Check for NOT NULL
+- `startswith` - String starts with
+- `endswith` - String ends with
+- `contains` - String contains
 
 ### Query Examples:
 
@@ -116,54 +162,13 @@ idnumber eq '123456789' and telephone1 ne null
 emailaddress1 ne null or telephone1 ne null
 
 accountname startswith 'א'
+
+createdon gt '2025-01-01' and statuscode eq 1
 ```
-
-### Query Features:
-- **Return All** - Automatically paginate through all results
-- **Limit** - Specify maximum number of results
-- **Page Size** - Control results per page
-- **Sorting** - Sort by any field (ascending/descending)
-- **Field Selection** - Choose specific fields to return or use `*` for all
-
-## Supported Field Types
-
-The node automatically handles **11 different field types**:
-
-1. **String** - Text fields
-2. **Number** - Numeric values
-3. **Phone** - Phone numbers
-4. **Email** - Email addresses
-5. **URL** - Website URLs
-6. **Textarea** - Long text fields
-7. **Date** - Date fields
-8. **DateTime** - Date and time fields
-9. **Picklist** - Dropdown selections
-10. **Lookup/Reference** - Related records
-11. **File/Document** - File attachments
-
-## Migrating from v1.x
-
-If you're upgrading from v1.x, note these **breaking changes**:
-
-### What Changed:
-- **Resource Selection Removed** - Instead of selecting "Account", "Contact", etc., you now select from all available objects via the "Object Type" dropdown
-- **Dynamic Fields** - Fields are no longer hardcoded; they load dynamically from your Fireberry account
-- **Object Type ID** - You now select objects by their numeric ID (loaded automatically)
-
-### Migration Steps:
-1. Update to v2.0.0
-2. Open existing workflows
-3. Re-select object types from the new dropdown
-4. Re-map fields (field names remain the same)
-
-### Benefits:
-- Access to **all** Fireberry objects (not just 4)
-- No need to update npm package when Fireberry adds new fields
-- Custom fields automatically available
 
 ## Examples
 
-### Example 1: Create a Customer
+### Example 1: Create a Customer with Contact
 ```
 Object Type: לקוח (Account)
 Operation: Create
@@ -172,56 +177,116 @@ Fields:
   - idnumber: "123456789"
   - telephone1: "03-1234567"
   - emailaddress1: "info@example.co.il"
+  - primarycontactid: [Select from dropdown: "בנימין זאב"]
+  - ownerid: [Select from dropdown: "Amit Bines"]
 ```
 
-### Example 2: Query Contacts
+### Example 2: Query Active Contacts
 ```
 Object Type: איש קשר (Contact)
 Operation: Query
 Return All: Yes
-Query: emailaddress1 ne null and mobilephone1 ne null
-Fields: firstname,lastname,emailaddress1,mobilephone1
+Query: emailaddress1 ne null and statecode eq 0
+Fields: firstname,lastname,emailaddress1,mobilephone1,accountname
 Sort By: lastname
 Sort Type: Ascending
 ```
 
-### Example 3: Update Order Status
+### Example 3: Update Case Status
 ```
-Object Type: הזמנה (Order)
+Object Type: קריאת שירות (Case)
 Operation: Update
-Record ID: {{$json["orderid"]}}
+Record ID: {{$json["caseid"]}}
 Update Fields:
-  - status: "completed"
-  - notes: "Order processed successfully"
+  - statuscode: [Select from dropdown: "פתור"]
+  - resolutionnotes: "Issue resolved successfully"
 ```
+
+### Example 4: Create Task Assigned to User
+```
+Object Type: משימה (Task)
+Operation: Create
+Fields:
+  - subject: "Follow up with customer"
+  - description: "Call regarding quote"
+  - ownerid: [Select from dropdown: "Amit Bines"]
+  - accountid: [Select from dropdown: "חברת הדוגמה"]
+  - duedate: "2025-10-10"
+```
+
+## Technical Details
+
+### Field Type Detection
+
+The node uses Fireberry's metadata API to determine field types:
+
+```typescript
+GUID → Field Type
+b4919f2e-2996-48e4-a03c-ba39fb64386c → Picklist (Dropdown)
+a8fcdf65-91bc-46fd-82f6-1234758345a1 → Lookup (Related Record)
+6a34bfe3-fece-4da1-9136-a7b1e5ae3319 → Number
+ce972d02-5013-46d4-9d1d-f09df1ac346a → DateTime
+... and more
+```
+
+### Lookup Field Loading
+
+For each lookup field, the node:
+1. Fetches field metadata to determine target Object Type
+2. Queries target Object Type for all records
+3. Uses PrimaryKey and PrimaryField from API response
+4. Displays records in dropdown with proper names and IDs
+
+Example: For `primarycontactid` (Primary Contact field):
+- Detects it's a lookup to Object Type 2 (Contacts)
+- Queries all Contacts
+- Displays: "בנימין זאב (fc7af7af-...)", "Amit Bines (682a84b8-...)"
+- Uses correct contactid when creating/updating
+
+## Migrating from v2.x
+
+### What's New in v3.0:
+- ✅ ResourceMapper for better field mapping UI
+- ✅ Dynamic dropdown support for Picklist fields
+- ✅ Dynamic dropdown support for Lookup fields
+- ✅ Improved field type detection
+- ✅ Better error handling
+
+### Migration is Seamless:
+- All v2.x workflows continue to work
+- Field names remain the same
+- New features available immediately for new nodes
 
 ## Resources
 
 * [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
 * [Fireberry API Documentation](https://developers.fireberry.com/)
 * [Fireberry Support](https://www.fireberry.com/articles/getting-started-with-rest-api)
+* [GitHub Repository](https://github.com/binesamit/n8n-nodes-fireberry)
 
 ## Changelog
+
+### v3.3.10 (2025-10-02)
+- 🎉 **Major Feature**: Dynamic dropdown support for Lookup fields!
+- ✨ Lookup fields now display related records in dropdown (Contacts, Users, Accounts, etc.)
+- ✨ Automatic PrimaryKey and PrimaryField detection for all Object Types
+- ✨ Support for all lookup field types with proper record display
+- 🐛 Fixed resourceMapper options display with `removeListSearch: true`
+- 🎨 Improved UI for field selection
+
+### v3.0.0 (2025-10-02)
+- 🚀 **Major Update**: ResourceMapper integration
+- ✨ Dynamic Picklist field support with dropdown values
+- ✨ Improved field type detection
+- ✨ Better error handling and validation
+- 🎨 Modern n8n UI with auto-complete
 
 ### v2.0.0 (2025-10-02)
 - 🚀 **BREAKING CHANGE**: Complete architectural restructure
 - ✨ Dynamic object type selection from Fireberry metadata API
-- ✨ Support for ALL Fireberry objects (not just 4 predefined types)
+- ✨ Support for ALL Fireberry objects
 - ✨ Dynamic field loading based on selected object
 - ✨ Support for 11 different field types
-- 🗑️ Removed static description files
-- 🗑️ Removed resource-based navigation
-
-### v1.1.1 (2025-10-01)
-- ✨ Added File/Document field type support
-
-### v1.1.0 (2025-10-01)
-- ✨ Added dynamic metadata loading
-- ✨ Added field type mapping (10 types)
-
-### v1.0.1 (2025-10-01)
-- 🐛 Fixed field names (mobilephone → mobilephone1)
-- 🐛 Fixed field structure (moved common fields outside collection)
 
 ### v1.0.0 (2025-10-01)
 - 🎉 Initial release
@@ -232,3 +297,11 @@ Update Fields:
 ## License
 
 [MIT](LICENSE)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+For issues, questions, or feature requests, please open an issue on [GitHub](https://github.com/binesamit/n8n-nodes-fireberry/issues).

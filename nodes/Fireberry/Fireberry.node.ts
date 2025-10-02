@@ -395,17 +395,13 @@ export class Fireberry implements INodeType {
 												  fieldDetailsResponse.data?.fieldObjectType;
 							if (fieldObjectType) {
 								lookupFieldsInfo[fieldName] = fieldObjectType;
-								console.log(`✅ Lookup field "${fieldName}" → Object Type ${fieldObjectType}`);
-							} else {
-								console.log(`⚠️ No fieldObjectType found for lookup field "${fieldName}"`);
 							}
 						} catch (error) {
-							console.error(`❌ Error fetching lookup field details for ${fieldName}:`, error);
+							// Silently fail - field will default to string input
 						}
 					});
 
 					await Promise.all(lookupDetailsPromises);
-					console.log(`📊 Loaded ${Object.keys(lookupFieldsInfo).length} lookup field mappings:`, lookupFieldsInfo);
 
 					// Map to resourceMapper format
 					const mappedFieldsPromises = fields
@@ -452,7 +448,6 @@ export class Fireberry implements INodeType {
 											page_size: 100,
 											page_number: 1,
 										};
-										console.log(`🔍 Querying Object Type ${fieldObjectType} for field "${fieldName}"...`);
 										const response = await fireberryApiRequest.call(
 											this,
 											'POST',
@@ -465,24 +460,16 @@ export class Fireberry implements INodeType {
 										const primaryKey = response.data?.PrimaryKey || 'id';
 										const primaryField = response.data?.PrimaryField || 'name';
 
-										console.log(`📊 Object Type ${fieldObjectType}: PrimaryKey="${primaryKey}", PrimaryField="${primaryField}", Records=${records?.length || 0}`);
-
-										if (!Array.isArray(records)) {
-											console.log(`❌ Records is not an array for "${fieldName}"`);
-											options = [];
-										} else {
+										if (Array.isArray(records)) {
 											options = records.map((record: any) => ({
 												name: record[primaryField] || record.name || record.fullname || record.title || `Record ${record[primaryKey]}`,
 												value: String(record[primaryKey] || record.id),
 											}));
-											console.log(`✅ Loaded ${options?.length || 0} options for "${fieldName}" from Object Type ${fieldObjectType}`);
 										}
 									} catch (error) {
-										console.error(`❌ Error loading lookup values for ${fieldName}:`, error);
+										// Silently fail - field will default to string input
 										options = [];
 									}
-								} else {
-									console.log(`⚠️ No fieldObjectType for "${fieldName}" - using string input`);
 								}
 								// If no fieldObjectType, field stays as string type (default)
 							} else if (fieldTypeId === '6a34bfe3-fece-4da1-9136-a7b1e5ae3319') {
