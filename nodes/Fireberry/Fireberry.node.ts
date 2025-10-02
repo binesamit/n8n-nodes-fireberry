@@ -823,6 +823,8 @@ export class Fireberry implements INodeType {
 						const queryRules = this.getNodeParameter('queryRules', i, {}) as any;
 						const rules = queryRules.rules || [];
 
+						console.log('Query rules received:', JSON.stringify(rules, null, 2));
+
 						if (rules.length > 0) {
 							const queryParts: string[] = [];
 
@@ -919,6 +921,9 @@ export class Fireberry implements INodeType {
 						...(sortBy && { sort_by: sortBy }),
 						sort_type: sortType,
 					};
+
+					// Debug: log the full request body
+					console.log('Query API request body:', JSON.stringify(body, null, 2));
 
 					if (returnAll) {
 						const limit = this.getNodeParameter('limit', i, 0) as number;

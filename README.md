@@ -312,6 +312,12 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.7.5 (2025-10-02)
+- 🔍 **Enhanced debug logging** for Query troubleshooting
+- 📊 Logs show: rules data, built query, API request body
+- 🐛 Investigating "OR vs AND" issue in Simple Query Builder
+- 💡 Use: `docker logs -f <container> | grep "Query"`
+
 ### v3.7.4 (2025-10-02)
 - ✅ **Search now works** in "Add field to send" dropdown!
 - 🐛 Fixed: Removed `removeListSearch: true` that was blocking search
