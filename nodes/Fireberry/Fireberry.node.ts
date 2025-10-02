@@ -123,7 +123,7 @@ export class Fireberry implements INodeType {
 						multiKeyMatch: false,
 					},
 				},
-				description: 'Map the fields to create the record',
+				description: 'Map the fields to create the record. Click the "⋮" menu → "Refresh Field List" to reload fields and lookup values.',
 			},
 
 			// ==============================
@@ -172,7 +172,7 @@ export class Fireberry implements INodeType {
 						multiKeyMatch: false,
 					},
 				},
-				description: 'Map the fields to update. Only specified fields will be changed.',
+				description: 'Map the fields to update. Only specified fields will be changed. Click the "⋮" menu → "Refresh Field List" to reload fields and lookup values.',
 			},
 
 			// ==============================
