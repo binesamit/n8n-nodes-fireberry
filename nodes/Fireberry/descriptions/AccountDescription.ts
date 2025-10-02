@@ -42,7 +42,7 @@ export const accountOperations: INodeProperties[] = [
 ];
 
 export const accountFields: INodeProperties[] = [
-	// CREATE
+	// CREATE - Required field
 	{
 		displayName: 'Account Name',
 		name: 'accountname',
@@ -57,6 +57,88 @@ export const accountFields: INodeProperties[] = [
 		default: '',
 		description: 'Name of the account (company)',
 	},
+
+	// CREATE - Common optional fields (outside collection)
+	{
+		displayName: 'Phone',
+		name: 'telephone1',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['account'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Primary phone number',
+	},
+	{
+		displayName: 'Email',
+		name: 'emailaddress1',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['account'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Primary email address',
+	},
+	{
+		displayName: 'ID Number',
+		name: 'idnumber',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['account'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'ID of the person or company (HP/Israeli company ID)',
+	},
+	{
+		displayName: 'City',
+		name: 'billingcity',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['account'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Billing city',
+	},
+	{
+		displayName: 'Street',
+		name: 'billingstreet',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['account'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Billing street address',
+	},
+	{
+		displayName: 'Website',
+		name: 'websiteurl',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['account'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Website URL',
+	},
+
+	// CREATE - Additional Fields for less common fields
 	{
 		displayName: 'Additional Fields',
 		name: 'additionalFields',
@@ -71,53 +153,97 @@ export const accountFields: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'Phone',
-				name: 'telephone1',
+				displayName: 'Account Number',
+				name: 'accountnumber',
 				type: 'string',
 				default: '',
-				description: 'Primary phone number',
 			},
 			{
-				displayName: 'ID Number',
-				name: 'idnumber',
+				displayName: 'Billing Country',
+				name: 'billingcountry',
 				type: 'string',
 				default: '',
-				description: 'Company ID number (HP/Israeli company ID)',
 			},
 			{
-				displayName: 'Email',
-				name: 'emailaddress1',
-				type: 'string',
-				default: '',
-				description: 'Primary email address',
-			},
-			{
-				displayName: 'City',
-				name: 'billingcity',
-				type: 'string',
-				default: '',
-				description: 'Billing city',
-			},
-			{
-				displayName: 'Street',
-				name: 'billingstreet',
-				type: 'string',
-				default: '',
-				description: 'Billing street address',
-			},
-			{
-				displayName: 'Postal Code',
+				displayName: 'Billing Postal Code',
 				name: 'billingpostalcode',
 				type: 'string',
 				default: '',
-				description: 'Billing postal code',
 			},
 			{
-				displayName: 'Website',
-				name: 'websiteurl',
+				displayName: 'Billing State',
+				name: 'billingstate',
 				type: 'string',
 				default: '',
-				description: 'Company website URL',
+			},
+			{
+				displayName: 'Billing Zip Code',
+				name: 'billingzipcode',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Description',
+				name: 'description',
+				type: 'string',
+				typeOptions: {
+					rows: 4,
+				},
+				default: '',
+			},
+			{
+				displayName: 'Email 2',
+				name: 'emailaddress2',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Email 3',
+				name: 'emailaddress3',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Fax',
+				name: 'fax1',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'First Name',
+				name: 'firstname',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Last Name',
+				name: 'lastname',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Number of Employees',
+				name: 'numberofemployees',
+				type: 'number',
+				default: 0,
+			},
+			{
+				displayName: 'Phone 2',
+				name: 'telephone2',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Phone 3',
+				name: 'telephone3',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Revenue',
+				name: 'revenue',
+				type: 'number',
+				default: 0,
 			},
 			{
 				displayName: 'Custom Fields',
@@ -157,7 +283,8 @@ export const accountFields: INodeProperties[] = [
 			},
 		],
 	},
-	// UPDATE
+
+	// UPDATE & DELETE & GET
 	{
 		displayName: 'Record ID',
 		name: 'recordId',
@@ -204,8 +331,26 @@ export const accountFields: INodeProperties[] = [
 				default: '',
 			},
 			{
+				displayName: 'ID Number',
+				name: 'idnumber',
+				type: 'string',
+				default: '',
+			},
+			{
 				displayName: 'City',
 				name: 'billingcity',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Street',
+				name: 'billingstreet',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Website',
+				name: 'websiteurl',
 				type: 'string',
 				default: '',
 			},

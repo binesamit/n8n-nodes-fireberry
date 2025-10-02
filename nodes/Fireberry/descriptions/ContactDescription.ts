@@ -1,5 +1,3 @@
-// nodes/Fireberry/descriptions/ContactDescription.ts
-
 import { INodeProperties } from 'n8n-workflow';
 
 export const contactOperations: INodeProperties[] = [
@@ -44,10 +42,10 @@ export const contactOperations: INodeProperties[] = [
 ];
 
 export const contactFields: INodeProperties[] = [
-	// CREATE
+	// CREATE - Required field
 	{
-		displayName: 'Last Name',
-		name: 'lastname',
+		displayName: 'First Name',
+		name: 'firstname',
 		type: 'string',
 		required: true,
 		displayOptions: {
@@ -57,8 +55,90 @@ export const contactFields: INodeProperties[] = [
 			},
 		},
 		default: '',
-		description: 'Last name of the contact',
+		description: 'First name of the contact',
 	},
+
+	// CREATE - Optional standard fields (outside collection)
+	{
+		displayName: 'Last Name',
+		name: 'lastname',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['contact'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Last name',
+	},
+	{
+		displayName: 'Email',
+		name: 'emailaddress1',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['contact'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Primary email address',
+	},
+	{
+		displayName: 'Mobile Phone',
+		name: 'mobilephone1',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['contact'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Primary mobile phone number',
+	},
+	{
+		displayName: 'Phone',
+		name: 'telephone1',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['contact'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Primary phone number',
+	},
+	{
+		displayName: 'Job Title',
+		name: 'jobtitle',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['contact'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'Job title or position',
+	},
+	{
+		displayName: 'Account ID',
+		name: 'accountid',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['contact'],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		description: 'ID of the related account (company)',
+	},
+
+	// CREATE - Additional Fields for less common fields
 	{
 		displayName: 'Additional Fields',
 		name: 'additionalFields',
@@ -73,46 +153,91 @@ export const contactFields: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'First Name',
-				name: 'firstname',
+				displayName: 'Billing City',
+				name: 'billingcity',
 				type: 'string',
 				default: '',
-				description: 'First name of the contact',
 			},
 			{
-				displayName: 'Email',
-				name: 'emailaddress1',
+				displayName: 'Billing Country',
+				name: 'billingcountry',
 				type: 'string',
 				default: '',
-				description: 'Primary email address',
 			},
 			{
-				displayName: 'Mobile Phone',
-				name: 'mobilephone',
+				displayName: 'Billing Street',
+				name: 'billingstreet',
 				type: 'string',
 				default: '',
-				description: 'Mobile phone number',
 			},
 			{
-				displayName: 'Phone',
-				name: 'telephone1',
+				displayName: 'Billing Zip Code',
+				name: 'billingzipcode',
 				type: 'string',
 				default: '',
-				description: 'Primary phone number',
 			},
 			{
-				displayName: 'Job Title',
-				name: 'jobtitle',
+				displayName: 'Company Name',
+				name: 'companyname',
 				type: 'string',
 				default: '',
-				description: 'Job title or position',
 			},
 			{
-				displayName: 'Parent Account ID',
-				name: 'parentcustomerid',
+				displayName: 'Department',
+				name: 'department',
 				type: 'string',
 				default: '',
-				description: 'ID of the parent account (company) this contact belongs to',
+			},
+			{
+				displayName: 'Description',
+				name: 'description',
+				type: 'string',
+				typeOptions: {
+					rows: 4,
+				},
+				default: '',
+			},
+			{
+				displayName: 'Email 2',
+				name: 'emailaddress2',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Email 3',
+				name: 'emailaddress3',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Fax',
+				name: 'fax',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Mobile Phone 2',
+				name: 'mobilephone2',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Phone 2',
+				name: 'telephone2',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Phone 3',
+				name: 'telephone3',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Website',
+				name: 'websiteurl',
+				type: 'string',
+				default: '',
 			},
 			{
 				displayName: 'Custom Fields',
@@ -152,6 +277,7 @@ export const contactFields: INodeProperties[] = [
 			},
 		],
 	},
+
 	// UPDATE & DELETE & GET
 	{
 		displayName: 'Record ID',
@@ -200,7 +326,7 @@ export const contactFields: INodeProperties[] = [
 			},
 			{
 				displayName: 'Mobile Phone',
-				name: 'mobilephone',
+				name: 'mobilephone1',
 				type: 'string',
 				default: '',
 			},
@@ -213,6 +339,12 @@ export const contactFields: INodeProperties[] = [
 			{
 				displayName: 'Job Title',
 				name: 'jobtitle',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Account ID',
+				name: 'accountid',
 				type: 'string',
 				default: '',
 			},

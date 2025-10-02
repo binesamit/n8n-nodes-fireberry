@@ -182,7 +182,7 @@ async function handleResourceOperation(
 		// Get required field based on resource type
 		const requiredFieldMap: { [key: string]: string } = {
 			account: 'accountname',
-			contact: 'lastname',
+			contact: 'firstname',
 			case: 'title',
 			task: 'subject',
 		};
@@ -191,6 +191,26 @@ async function handleResourceOperation(
 		const body: any = {
 			[requiredField]: this.getNodeParameter(requiredField, itemIndex),
 		};
+
+		// Add all optional fields that are not required
+		const optionalFields = [
+			'lastname', 'emailaddress1', 'mobilephone1', 'telephone1', 'jobtitle', 'accountid',
+			'telephone2', 'telephone3', 'idnumber', 'websiteurl', 'billingcity', 'billingstreet',
+			'billingpostalcode', 'fax1', 'firstname', 'revenue', 'numberofemployees',
+			'description', 'prioritycode', 'statecode', 'customerid',
+			'scheduledstart', 'scheduledend', 'regardingobjectid'
+		];
+
+		for (const field of optionalFields) {
+			try {
+				const value = this.getNodeParameter(field, itemIndex, undefined);
+				if (value !== undefined && value !== '') {
+					body[field] = value;
+				}
+			} catch (error) {
+				// Field doesn't exist for this resource, skip it
+			}
+		}
 
 		// Add additional fields
 		const additionalFields = this.getNodeParameter('additionalFields', itemIndex, {}) as any;
