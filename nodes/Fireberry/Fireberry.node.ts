@@ -417,7 +417,7 @@ export class Fireberry implements INodeType {
 						})
 						.map(async (field: any) => {
 							const fieldName = field.name || field.fieldName || '';
-							const displayName = field.displayName || field.label || fieldName;
+							let displayName = field.displayName || field.label || fieldName;
 							const fieldTypeId = field.systemFieldTypeId;
 
 							// Determine field type for resourceMapper
@@ -442,7 +442,13 @@ export class Fireberry implements INodeType {
 								const fieldObjectType = lookupFieldsInfo[fieldName];
 
 								if (fieldObjectType) {
-									type = 'options';
+									// Change type to string for now - resourceMapper doesn't support dynamic options
+									// User will need to provide the record ID manually or via expression
+									type = 'string';
+
+									// Add hint to display name about which object type this links to
+									displayName = `${displayName} (Object Type ${fieldObjectType} ID)`;
+
 									try {
 										const queryBody = {
 											objecttype: parseInt(fieldObjectType, 10),
@@ -502,9 +508,18 @@ export class Fireberry implements INodeType {
 								removeListSearch: false,
 							};
 
-							// Only add options if they exist and have values
+							// Add options for picklist/lookup fields
 							if (options && options.length > 0) {
-								fieldDef.options = options;
+								if (type === 'options') {
+									// Picklist - add as dropdown options
+									fieldDef.options = options;
+								} else if (type === 'string' && fieldTypeId === 'a8fcdf65-91bc-46fd-82f6-1234758345a1') {
+									// Lookup field - add placeholder with available options as hint
+									const availableRecords = options.slice(0, 3).map(opt => opt.name).join(', ');
+									const more = options.length > 3 ? `, +${options.length - 3} more` : '';
+									fieldDef.placeholder = `Enter record ID (e.g., from: ${availableRecords}${more})`;
+									fieldDef.description = `Available records: ${options.map(opt => `${opt.name} (${opt.value})`).join(', ')}`;
+								}
 							}
 
 							return fieldDef;
