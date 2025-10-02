@@ -250,12 +250,10 @@ export async function getObjectFieldsFromMetadata(
  */
 export async function getPicklistValues(
 	this: ILoadOptionsFunctions,
-	objectType: string,
+	objectTypeId: string,
 	fieldName: string,
 ): Promise<INodePropertyOptions[]> {
 	try {
-		const objectTypeId = mapObjectTypeToNumber(objectType);
-
 		const response = await fireberryApiRequest.call(
 			this,
 			'GET',
@@ -267,8 +265,8 @@ export async function getPicklistValues(
 		const values = response[0]?.data?.values || response.data?.values || [];
 
 		return values.map((v: any) => ({
-			name: v.name,
-			value: v.value,
+			name: v.name || v.label || String(v.value),
+			value: String(v.value),
 		}));
 	} catch (error) {
 		console.error('Error fetching picklist values:', error);
