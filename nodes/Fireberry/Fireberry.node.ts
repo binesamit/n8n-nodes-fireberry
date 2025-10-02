@@ -93,49 +93,37 @@ export class Fireberry implements INodeType {
 			},
 
 			// ==============================
-			// CREATE OPERATION - Dynamic Fields
+			// CREATE OPERATION - Resource Mapper
 			// ==============================
 			{
-				displayName: 'Fields',
-				name: 'createFields',
-				type: 'fixedCollection',
-				typeOptions: {
-					multipleValues: true,
+				displayName: 'Columns',
+				name: 'columns',
+				type: 'resourceMapper',
+				noDataExpression: true,
+				default: {
+					mappingMode: 'defineBelow',
+					value: null,
 				},
-				placeholder: 'Add Field',
-				default: {},
+				required: true,
 				displayOptions: {
 					show: {
 						operation: ['create'],
 					},
 				},
-				options: [
-					{
-						name: 'field',
-						displayName: 'Field',
-						values: [
-							{
-								displayName: 'Field Name',
-								name: 'fieldName',
-								type: 'options',
-								typeOptions: {
-									loadOptionsMethod: 'getObjectFields',
-								},
-								default: '',
-								description: 'Choose a field from the list. The type and available values are shown in the description.',
-							},
-							{
-								displayName: 'Field Value',
-								name: 'fieldValue',
-								type: 'string',
-								default: '',
-								description: 'Enter the value. For picklist fields, enter the exact value as it appears in Fireberry. For lookup fields, enter the record ID.',
-								placeholder: 'Enter value',
-							},
-						],
+				typeOptions: {
+					loadOptionsDependsOn: ['objectType'],
+					resourceMapper: {
+						resourceMapperMethod: 'getColumns',
+						mode: 'add',
+						fieldWords: {
+							singular: 'field',
+							plural: 'fields',
+						},
+						addAllFields: true,
+						multiKeyMatch: false,
 					},
-				],
-				description: 'Click "Add Field" to add each field you want to set on the new record',
+				},
+				description: 'Map the fields to create the record',
 			},
 
 			// ==============================
@@ -155,48 +143,36 @@ export class Fireberry implements INodeType {
 				description: 'ID of the record to operate on',
 			},
 
-			// UPDATE OPERATION - Fields
+			// UPDATE OPERATION - Resource Mapper
 			{
-				displayName: 'Update Fields',
-				name: 'updateFields',
-				type: 'fixedCollection',
-				typeOptions: {
-					multipleValues: true,
+				displayName: 'Columns',
+				name: 'updateColumns',
+				type: 'resourceMapper',
+				noDataExpression: true,
+				default: {
+					mappingMode: 'defineBelow',
+					value: null,
 				},
-				placeholder: 'Add Field',
-				default: {},
+				required: true,
 				displayOptions: {
 					show: {
 						operation: ['update'],
 					},
 				},
-				options: [
-					{
-						name: 'field',
-						displayName: 'Field',
-						values: [
-							{
-								displayName: 'Field Name',
-								name: 'fieldName',
-								type: 'options',
-								typeOptions: {
-									loadOptionsMethod: 'getObjectFields',
-								},
-								default: '',
-								description: 'Choose a field to update. The field type is shown in the description.',
-							},
-							{
-								displayName: 'Field Value',
-								name: 'fieldValue',
-								type: 'string',
-								default: '',
-								description: 'Enter the new value. For picklist fields, enter the exact value. For lookup fields, enter the record ID.',
-								placeholder: 'Enter new value',
-							},
-						],
+				typeOptions: {
+					loadOptionsDependsOn: ['objectType'],
+					resourceMapper: {
+						resourceMapperMethod: 'getColumns',
+						mode: 'update',
+						fieldWords: {
+							singular: 'field',
+							plural: 'fields',
+						},
+						addAllFields: false,
+						multiKeyMatch: false,
 					},
-				],
-				description: 'Specify fields to update. Only these fields will be changed.',
+				},
+				description: 'Map the fields to update. Only specified fields will be changed.',
 			},
 
 			// ==============================
@@ -379,7 +355,76 @@ export class Fireberry implements INodeType {
 					return [];
 				}
 			},
+		},
 
+		resourceMapping: {
+			// Get columns/fields for resourceMapper
+			async getColumns(this: ILoadOptionsFunctions): Promise<any> {
+				const objectType = this.getNodeParameter('objectType', 0) as string;
+
+				if (!objectType) {
+					return { fields: [] };
+				}
+
+				try {
+					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
+
+					if (!fields || fields.length === 0) {
+						return { fields: [] };
+					}
+
+					// Map to resourceMapper format
+					const mappedFields = fields
+						.filter((field: any) => {
+							const fieldName = field.name || field.fieldName || '';
+							return fieldName &&
+								   !fieldName.startsWith('_') &&
+								   !fieldName.toLowerCase().includes('deleted');
+						})
+						.map((field: any) => {
+							const fieldName = field.name || field.fieldName || '';
+							const displayName = field.displayName || field.label || fieldName;
+							const fieldTypeId = field.systemFieldTypeId;
+							const fieldTypeName = FIELD_TYPE_MAP[fieldTypeId]?.description || 'string';
+
+							// Determine field type for resourceMapper
+							let type = 'string';
+							let options: any = undefined;
+
+							if (fieldTypeId === 'b4919f2e-2996-48e4-a03c-ba39fb64386c') {
+								// Picklist
+								type = 'options';
+								options = {
+									loadOptionsMethod: `getPicklistValues_${fieldName}`,
+								};
+							} else if (fieldTypeId === '6a34bfe3-fece-4da1-9136-a7b1e5ae3319') {
+								// Number
+								type = 'number';
+							} else if (fieldTypeId === 'ce972d02-5013-46d4-9d1d-f09df1ac346a' ||
+									   fieldTypeId === '83bf530c-e04c-462b-9ffc-a46f750fc072') {
+								// DateTime or Date
+								type = 'dateTime';
+							}
+
+							return {
+								id: fieldName,
+								displayName,
+								required: field.isRequired || false,
+								defaultMatch: false,
+								display: true,
+								type,
+								...(options && { options }),
+							};
+						});
+
+					return {
+						fields: mappedFields,
+					};
+				} catch (error) {
+					console.error('Error getting columns:', error);
+					return { fields: [] };
+				}
+			},
 		},
 	};
 
@@ -394,20 +439,31 @@ export class Fireberry implements INodeType {
 				let responseData;
 
 				if (operation === 'create') {
-					const createFieldsData = this.getNodeParameter('createFields', i, {}) as any;
-					const fieldArray = createFieldsData.field || [];
+					const columnsData = this.getNodeParameter('columns', i) as any;
 
-					if (fieldArray.length === 0) {
+					let body: any = {};
+
+					// Handle different mapping modes
+					if (columnsData.mappingMode === 'autoMapInputData') {
+						// Use input data directly
+						body = items[i].json;
+					} else if (columnsData.mappingMode === 'defineBelow' && columnsData.value) {
+						// Manual mapping
+						body = columnsData.value;
+					} else {
 						throw new NodeOperationError(
 							this.getNode(),
-							'Please add at least one field to create the record',
+							'Please map at least one field to create the record',
 							{ itemIndex: i },
 						);
 					}
 
-					const body: any = {};
-					for (const field of fieldArray) {
-						body[field.fieldName] = field.fieldValue;
+					if (Object.keys(body).length === 0) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'No fields to create. Please map at least one field.',
+							{ itemIndex: i },
+						);
 					}
 
 					responseData = await fireberryApiRequest.call(
@@ -419,20 +475,31 @@ export class Fireberry implements INodeType {
 
 				} else if (operation === 'update') {
 					const recordId = this.getNodeParameter('recordId', i) as string;
-					const updateFieldsData = this.getNodeParameter('updateFields', i, {}) as any;
-					const fieldArray = updateFieldsData.field || [];
+					const columnsData = this.getNodeParameter('updateColumns', i) as any;
 
-					if (fieldArray.length === 0) {
+					let body: any = {};
+
+					// Handle different mapping modes
+					if (columnsData.mappingMode === 'autoMapInputData') {
+						// Use input data directly
+						body = items[i].json;
+					} else if (columnsData.mappingMode === 'defineBelow' && columnsData.value) {
+						// Manual mapping
+						body = columnsData.value;
+					} else {
 						throw new NodeOperationError(
 							this.getNode(),
-							'Please specify at least one field to update',
+							'Please map at least one field to update',
 							{ itemIndex: i },
 						);
 					}
 
-					const body: any = {};
-					for (const field of fieldArray) {
-						body[field.fieldName] = field.fieldValue;
+					if (Object.keys(body).length === 0) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'No fields to update. Please map at least one field.',
+							{ itemIndex: i },
+						);
 					}
 
 					responseData = await fireberryApiRequest.call(
