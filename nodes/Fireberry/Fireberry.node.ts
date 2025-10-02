@@ -122,52 +122,15 @@ export class Fireberry implements INodeType {
 									loadOptionsMethod: 'getObjectFields',
 								},
 								default: '',
-								description: 'Choose a field to set',
-							},
-							{
-								displayName: 'Value Type',
-								name: 'valueType',
-								type: 'options',
-								options: [
-									{
-										name: 'Manual Input',
-										value: 'manual',
-									},
-									{
-										name: 'From Dropdown (Picklist)',
-										value: 'picklist',
-									},
-								],
-								default: 'manual',
-								description: 'How to provide the value',
+								description: 'Choose a field from the list. The type and available values are shown in the description.',
 							},
 							{
 								displayName: 'Field Value',
 								name: 'fieldValue',
 								type: 'string',
-								displayOptions: {
-									show: {
-										valueType: ['manual'],
-									},
-								},
 								default: '',
-								description: 'Enter the value for this field',
-							},
-							{
-								displayName: 'Field Value',
-								name: 'fieldValue',
-								type: 'options',
-								displayOptions: {
-									show: {
-										valueType: ['picklist'],
-									},
-								},
-								typeOptions: {
-									loadOptionsMethod: 'getFieldPicklistValues',
-									loadOptionsDependsOn: ['fieldName'],
-								},
-								default: '',
-								description: 'Choose a value from the list',
+								description: 'Enter the value. For picklist fields, enter the exact value as it appears in Fireberry. For lookup fields, enter the record ID.',
+								placeholder: 'Enter value',
 							},
 						],
 					},
@@ -220,52 +183,15 @@ export class Fireberry implements INodeType {
 									loadOptionsMethod: 'getObjectFields',
 								},
 								default: '',
-								description: 'Choose a field to update',
-							},
-							{
-								displayName: 'Value Type',
-								name: 'valueType',
-								type: 'options',
-								options: [
-									{
-										name: 'Manual Input',
-										value: 'manual',
-									},
-									{
-										name: 'From Dropdown (Picklist)',
-										value: 'picklist',
-									},
-								],
-								default: 'manual',
-								description: 'How to provide the value',
+								description: 'Choose a field to update. The field type is shown in the description.',
 							},
 							{
 								displayName: 'Field Value',
 								name: 'fieldValue',
 								type: 'string',
-								displayOptions: {
-									show: {
-										valueType: ['manual'],
-									},
-								},
 								default: '',
-								description: 'Enter the new value',
-							},
-							{
-								displayName: 'Field Value',
-								name: 'fieldValue',
-								type: 'options',
-								displayOptions: {
-									show: {
-										valueType: ['picklist'],
-									},
-								},
-								typeOptions: {
-									loadOptionsMethod: 'getFieldPicklistValues',
-									loadOptionsDependsOn: ['fieldName'],
-								},
-								default: '',
-								description: 'Choose a value from the list',
+								description: 'Enter the new value. For picklist fields, enter the exact value. For lookup fields, enter the record ID.',
+								placeholder: 'Enter new value',
 							},
 						],
 					},
@@ -440,9 +366,9 @@ export class Fireberry implements INodeType {
 							const fieldType = FIELD_TYPE_MAP[field.systemFieldTypeId]?.description || 'Field';
 
 							return {
-								name: `${displayName} (${fieldName})`,
+								name: `${displayName}`,
 								value: fieldName,
-								description: fieldType,
+								description: `${fieldType} - ${fieldName}`,
 							};
 						})
 						.sort((a: any, b: any) => a.name.localeCompare(b.name));
@@ -454,22 +380,6 @@ export class Fireberry implements INodeType {
 				}
 			},
 
-			// Load picklist values for a specific field
-			async getFieldPicklistValues(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const objectType = this.getNodeParameter('objectType') as string;
-				const fieldName = this.getNodeParameter('fieldName') as string;
-
-				if (!objectType || !fieldName) {
-					return [];
-				}
-
-				try {
-					return await getPicklistValues.call(this, objectType, fieldName);
-				} catch (error) {
-					console.error('Error loading picklist values:', error);
-					return [];
-				}
-			},
 		},
 	};
 
