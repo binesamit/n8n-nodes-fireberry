@@ -753,6 +753,9 @@ export class Fireberry implements INodeType {
 					const recordId = this.getNodeParameter('recordId', i) as string;
 					const columnsData = this.getNodeParameter('updateColumns', i) as any;
 
+					console.log('Update operation - recordId:', recordId);
+					console.log('Update operation - columnsData:', JSON.stringify(columnsData, null, 2));
+
 					let body: any = {};
 
 					// Handle different mapping modes
@@ -777,6 +780,9 @@ export class Fireberry implements INodeType {
 							{ itemIndex: i },
 						);
 					}
+
+					console.log('Update body to send:', JSON.stringify(body, null, 2));
+					console.log('Update URL:', `/api/record/${objectType}/${recordId}`);
 
 					responseData = await fireberryApiRequest.call(
 						this,

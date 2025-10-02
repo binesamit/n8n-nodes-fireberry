@@ -312,6 +312,12 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.7.1 (2025-10-02)
+- 🔍 **Debug logs for Update operation** - troubleshoot Update issues
+- 📊 Logs show: recordId, columnsData, body to send, API URL
+- 🐛 Investigating "Bad request" errors in Update
+- 📝 Query is independent of columns - can split to separate nodes safely
+
 ### v3.7.0 (2025-10-02)
 - 🎯 **Simplified Query Builder** - Back to reliable manual input
 - ❌ Removed problematic "Value Type" dropdown (wasn't working in fixedCollection)
