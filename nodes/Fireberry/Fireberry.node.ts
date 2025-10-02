@@ -368,11 +368,33 @@ export class Fireberry implements INodeType {
 				try {
 					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
 
-					return fields.map((field: any) => ({
-						name: field.displayName || field.name,
-						value: field.name,
-						description: `${field.systemFieldTypeName || field.systemFieldTypeId}`,
-					})).sort((a: any, b: any) => a.name.localeCompare(b.name));
+					if (!fields || fields.length === 0) {
+						return [];
+					}
+
+					// Map fields to dropdown options
+					const options = fields
+						.filter((field: any) => {
+							// Filter out internal/system fields
+							const fieldName = field.name || field.fieldName || '';
+							return fieldName &&
+								   !fieldName.startsWith('_') &&
+								   !fieldName.toLowerCase().includes('deleted');
+						})
+						.map((field: any) => {
+							const fieldName = field.name || field.fieldName || '';
+							const displayName = field.displayName || field.label || fieldName;
+							const fieldType = FIELD_TYPE_MAP[field.systemFieldTypeId]?.description || 'Field';
+
+							return {
+								name: `${displayName} (${fieldName})`,
+								value: fieldName,
+								description: fieldType,
+							};
+						})
+						.sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+					return options;
 				} catch (error) {
 					console.error('Error loading fields:', error);
 					return [];
