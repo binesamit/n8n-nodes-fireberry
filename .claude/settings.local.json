@@ -12,7 +12,9 @@
       "Bash(npm whoami:*)",
       "Bash(npm publish:*)",
       "Bash(npx eslint:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Read(//d/**)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

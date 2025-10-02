@@ -442,12 +442,8 @@ export class Fireberry implements INodeType {
 								const fieldObjectType = lookupFieldsInfo[fieldName];
 
 								if (fieldObjectType) {
-									// Change type to string for now - resourceMapper doesn't support dynamic options
-									// User will need to provide the record ID manually or via expression
-									type = 'string';
-
-									// Add hint to display name about which object type this links to
-									displayName = `${displayName} (Object Type ${fieldObjectType} ID)`;
+									// Use options type with loadOptionsMethod
+									type = 'options';
 
 									try {
 										const queryBody = {
@@ -505,21 +501,14 @@ export class Fireberry implements INodeType {
 								defaultMatch: false,
 								display: true,
 								type,
-								removeListSearch: false,
 							};
 
 							// Add options for picklist/lookup fields
-							if (options && options.length > 0) {
-								if (type === 'options') {
-									// Picklist - add as dropdown options
-									fieldDef.options = options;
-								} else if (type === 'string' && fieldTypeId === 'a8fcdf65-91bc-46fd-82f6-1234758345a1') {
-									// Lookup field - add placeholder with available options as hint
-									const availableRecords = options.slice(0, 3).map(opt => opt.name).join(', ');
-									const more = options.length > 3 ? `, +${options.length - 3} more` : '';
-									fieldDef.placeholder = `Enter record ID (e.g., from: ${availableRecords}${more})`;
-									fieldDef.description = `Available records: ${options.map(opt => `${opt.name} (${opt.value})`).join(', ')}`;
-								}
+							if (options && options.length > 0 && type === 'options') {
+								// Both Picklist and Lookup use direct options in resourceMapper
+								fieldDef.options = options;
+								// Don't use searchable list for better compatibility
+								fieldDef.removeListSearch = true;
 							}
 
 							return fieldDef;
