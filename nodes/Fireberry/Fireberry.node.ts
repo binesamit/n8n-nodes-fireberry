@@ -357,6 +357,8 @@ export class Fireberry implements INodeType {
 			},
 		},
 
+
+
 		resourceMapping: {
 			// Get columns/fields for resourceMapper
 			async getColumns(this: ILoadOptionsFunctions): Promise<any> {
@@ -373,30 +375,114 @@ export class Fireberry implements INodeType {
 						return { fields: [] };
 					}
 
+					// Pre-fetch fieldObjectType for all lookup fields
+					const lookupFieldsInfo: { [key: string]: string } = {};
+					const lookupFields = fields.filter((f: any) =>
+						f.systemFieldTypeId === 'a8fcdf65-91bc-46fd-82f6-1234758345a1'
+					);
+
+					// Fetch all lookup field details in parallel
+					const lookupDetailsPromises = lookupFields.map(async (field: any) => {
+						const fieldName = field.name || field.fieldName || '';
+						try {
+							const fieldDetailsResponse = await fireberryApiRequest.call(
+								this,
+								'GET',
+								`/metadata/records/${objectType}/fields/${fieldName}`,
+								{},
+							);
+							const fieldObjectType = fieldDetailsResponse[0]?.data?.fieldObjectType ||
+												  fieldDetailsResponse.data?.fieldObjectType;
+							if (fieldObjectType) {
+								lookupFieldsInfo[fieldName] = fieldObjectType;
+								console.log(`✅ Lookup field "${fieldName}" → Object Type ${fieldObjectType}`);
+							} else {
+								console.log(`⚠️ No fieldObjectType found for lookup field "${fieldName}"`);
+							}
+						} catch (error) {
+							console.error(`❌ Error fetching lookup field details for ${fieldName}:`, error);
+						}
+					});
+
+					await Promise.all(lookupDetailsPromises);
+					console.log(`📊 Loaded ${Object.keys(lookupFieldsInfo).length} lookup field mappings:`, lookupFieldsInfo);
+
 					// Map to resourceMapper format
-					const mappedFields = fields
+					const mappedFieldsPromises = fields
 						.filter((field: any) => {
 							const fieldName = field.name || field.fieldName || '';
 							return fieldName &&
 								   !fieldName.startsWith('_') &&
 								   !fieldName.toLowerCase().includes('deleted');
 						})
-						.map((field: any) => {
+						.map(async (field: any) => {
 							const fieldName = field.name || field.fieldName || '';
 							const displayName = field.displayName || field.label || fieldName;
 							const fieldTypeId = field.systemFieldTypeId;
-							const fieldTypeName = FIELD_TYPE_MAP[fieldTypeId]?.description || 'string';
 
 							// Determine field type for resourceMapper
 							let type = 'string';
-							let options: any = undefined;
+							let options: INodePropertyOptions[] | undefined = undefined;
 
 							if (fieldTypeId === 'b4919f2e-2996-48e4-a03c-ba39fb64386c') {
-								// Picklist
+								// Picklist - fetch values and build options
 								type = 'options';
-								options = {
-									loadOptionsMethod: `getPicklistValues_${fieldName}`,
-								};
+								try {
+									const values = await getPicklistValues.call(this, objectType, fieldName);
+									options = values.map(v => ({
+										name: v.name,
+										value: v.value,
+									}));
+								} catch (error) {
+									console.error(`Error loading picklist values for ${fieldName}:`, error);
+									options = [];
+								}
+							} else if (fieldTypeId === 'a8fcdf65-91bc-46fd-82f6-1234758345a1') {
+								// Lookup/Reference - use pre-fetched fieldObjectType
+								const fieldObjectType = lookupFieldsInfo[fieldName];
+
+								if (fieldObjectType) {
+									type = 'options';
+									try {
+										const queryBody = {
+											objecttype: parseInt(fieldObjectType, 10),
+											fields: '*',
+											page_size: 100,
+											page_number: 1,
+										};
+										console.log(`🔍 Querying Object Type ${fieldObjectType} for field "${fieldName}"...`);
+										const response = await fireberryApiRequest.call(
+											this,
+											'POST',
+											'/api/query',
+											queryBody,
+										);
+
+										// Query API returns: { success: true, data: { Data: [...], Columns: [...], PrimaryKey: "...", PrimaryField: "..." }, message: "..." }
+										const records = response.data?.Data || response.Data || response.value || [];
+										const primaryKey = response.data?.PrimaryKey || 'id';
+										const primaryField = response.data?.PrimaryField || 'name';
+
+										console.log(`📊 Object Type ${fieldObjectType}: PrimaryKey="${primaryKey}", PrimaryField="${primaryField}", Records=${records?.length || 0}`);
+
+										if (!Array.isArray(records)) {
+											console.log(`❌ Records is not an array for "${fieldName}"`);
+											options = [];
+										} else {
+											options = records.map((record: any) => ({
+												name: record[primaryField] || record.name || record.fullname || record.title || `Record ${record[primaryKey]}`,
+												value: String(record[primaryKey] || record.id),
+											}));
+											console.log(`✅ Loaded ${options?.length || 0} options for "${fieldName}" from Object Type ${fieldObjectType}`);
+										}
+									} catch (error) {
+										console.error(`❌ Error loading lookup values for ${fieldName}:`, error);
+										options = [];
+									}
+								} else {
+									console.log(`⚠️ No fieldObjectType for "${fieldName}" - using string input`);
+								}
+								// If no fieldObjectType, field stays as string type (default)
 							} else if (fieldTypeId === '6a34bfe3-fece-4da1-9136-a7b1e5ae3319') {
 								// Number
 								type = 'number';
@@ -406,16 +492,25 @@ export class Fireberry implements INodeType {
 								type = 'dateTime';
 							}
 
-							return {
+							const fieldDef: any = {
 								id: fieldName,
 								displayName,
 								required: field.isRequired || false,
 								defaultMatch: false,
 								display: true,
 								type,
-								...(options && { options }),
+								removeListSearch: false,
 							};
+
+							// Only add options if they exist and have values
+							if (options && options.length > 0) {
+								fieldDef.options = options;
+							}
+
+							return fieldDef;
 						});
+
+					const mappedFields = await Promise.all(mappedFieldsPromises);
 
 					return {
 						fields: mappedFields,
