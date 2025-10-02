@@ -96,7 +96,10 @@ export class Fireberry implements INodeType {
 			{
 				displayName: 'Fields',
 				name: 'createFields',
-				type: 'collection',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
 				placeholder: 'Add Field',
 				default: {},
 				displayOptions: {
@@ -104,11 +107,32 @@ export class Fireberry implements INodeType {
 						operation: ['create'],
 					},
 				},
-				typeOptions: {
-					loadOptionsMethod: 'getObjectFields',
-				},
-				options: [],
-				description: 'Fields to set on the new record. Available fields are loaded dynamically from your Fireberry account.',
+				options: [
+					{
+						name: 'fieldValues',
+						displayName: 'Field',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldName',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getObjectFields',
+								},
+								default: '',
+								description: 'The field to set',
+							},
+							{
+								displayName: 'Field Value',
+								name: 'fieldValue',
+								type: 'string',
+								default: '',
+								description: 'The value to set',
+							},
+						],
+					},
+				],
+				description: 'Fields to set on the new record. Click "Add Field" to add each field.',
 			},
 
 			// ==============================
@@ -132,7 +156,10 @@ export class Fireberry implements INodeType {
 			{
 				displayName: 'Update Fields',
 				name: 'updateFields',
-				type: 'collection',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
 				placeholder: 'Add Field',
 				default: {},
 				displayOptions: {
@@ -140,11 +167,32 @@ export class Fireberry implements INodeType {
 						operation: ['update'],
 					},
 				},
-				typeOptions: {
-					loadOptionsMethod: 'getObjectFields',
-				},
-				options: [],
-				description: 'Fields to update on the record',
+				options: [
+					{
+						name: 'fieldValues',
+						displayName: 'Field',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldName',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getObjectFields',
+								},
+								default: '',
+								description: 'The field to update',
+							},
+							{
+								displayName: 'Field Value',
+								name: 'fieldValue',
+								type: 'string',
+								default: '',
+								description: 'The new value',
+							},
+						],
+					},
+				],
+				description: 'Fields to update on the record. Click "Add Field" to add each field.',
 			},
 
 			// ==============================
@@ -318,9 +366,10 @@ export class Fireberry implements INodeType {
 				let responseData;
 
 				if (operation === 'create') {
-					const createFields = this.getNodeParameter('createFields', i, {}) as any;
+					const createFieldsData = this.getNodeParameter('createFields', i, {}) as any;
+					const fieldValues = createFieldsData.fieldValues || [];
 
-					if (Object.keys(createFields).length === 0) {
+					if (fieldValues.length === 0) {
 						throw new NodeOperationError(
 							this.getNode(),
 							'Please specify at least one field to create the record',
@@ -328,27 +377,25 @@ export class Fireberry implements INodeType {
 						);
 					}
 
-					// Process custom fields if present
-					if (createFields.customFieldsUi?.customFieldValues) {
-						const customFields = createFields.customFieldsUi.customFieldValues;
-						for (const field of customFields) {
-							createFields[field.fieldId] = field.fieldValue;
-						}
-						delete createFields.customFieldsUi;
+					// Convert field array to object
+					const body: any = {};
+					for (const field of fieldValues) {
+						body[field.fieldName] = field.fieldValue;
 					}
 
 					responseData = await fireberryApiRequest.call(
 						this,
 						'POST',
 						`/api/record/${objectType}`,
-						createFields,
+						body,
 					);
 
 				} else if (operation === 'update') {
 					const recordId = this.getNodeParameter('recordId', i) as string;
-					const updateFields = this.getNodeParameter('updateFields', i, {}) as any;
+					const updateFieldsData = this.getNodeParameter('updateFields', i, {}) as any;
+					const fieldValues = updateFieldsData.fieldValues || [];
 
-					if (Object.keys(updateFields).length === 0) {
+					if (fieldValues.length === 0) {
 						throw new NodeOperationError(
 							this.getNode(),
 							'Please specify at least one field to update',
@@ -356,20 +403,17 @@ export class Fireberry implements INodeType {
 						);
 					}
 
-					// Process custom fields if present
-					if (updateFields.customFieldsUi?.customFieldValues) {
-						const customFields = updateFields.customFieldsUi.customFieldValues;
-						for (const field of customFields) {
-							updateFields[field.fieldId] = field.fieldValue;
-						}
-						delete updateFields.customFieldsUi;
+					// Convert field array to object
+					const body: any = {};
+					for (const field of fieldValues) {
+						body[field.fieldName] = field.fieldValue;
 					}
 
 					responseData = await fireberryApiRequest.call(
 						this,
 						'PUT',
 						`/api/record/${objectType}/${recordId}`,
-						updateFields,
+						body,
 					);
 
 				} else if (operation === 'delete') {
