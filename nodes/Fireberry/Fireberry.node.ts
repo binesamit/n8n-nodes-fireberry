@@ -92,31 +92,8 @@ export class Fireberry implements INodeType {
 			},
 
 			// ==============================
-			// CREATE OPERATION - Resource Mapper
+			// CREATE OPERATION - Dynamic Fields
 			// ==============================
-			{
-				displayName: 'Fields to Send',
-				name: 'fieldsToSend',
-				type: 'options',
-				displayOptions: {
-					show: {
-						operation: ['create'],
-					},
-				},
-				options: [
-					{
-						name: 'Auto-Map Input Data',
-						value: 'autoMapInputData',
-						description: 'Use all fields from input data automatically',
-					},
-					{
-						name: 'Define Below for Each Field',
-						value: 'defineBelow',
-						description: 'Set each field manually',
-					},
-				],
-				default: 'defineBelow',
-			},
 			{
 				displayName: 'Fields',
 				name: 'createFields',
@@ -129,7 +106,6 @@ export class Fireberry implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['create'],
-						fieldsToSend: ['defineBelow'],
 					},
 				},
 				options: [
@@ -145,19 +121,26 @@ export class Fireberry implements INodeType {
 									loadOptionsMethod: 'getObjectFields',
 								},
 								default: '',
-								description: 'Choose a field',
+								description: 'Choose a field to set',
+							},
+							{
+								displayName: 'Field Type',
+								name: 'fieldType',
+								type: 'hidden',
+								default: '',
+								description: 'Internal field type indicator',
 							},
 							{
 								displayName: 'Field Value',
 								name: 'value',
 								type: 'string',
 								default: '',
-								description: 'Value to set',
+								description: 'Enter the value for this field',
 							},
 						],
 					},
 				],
-				description: 'Map fields one by one',
+				description: 'Click "Add Field" to add each field you want to set on the new record',
 			},
 
 			// ==============================
@@ -414,28 +397,20 @@ export class Fireberry implements INodeType {
 				let responseData;
 
 				if (operation === 'create') {
-					const fieldsToSend = this.getNodeParameter('fieldsToSend', i) as string;
-					let body: any = {};
+					const createFieldsData = this.getNodeParameter('createFields', i, {}) as any;
+					const fieldArray = createFieldsData.field || [];
 
-					if (fieldsToSend === 'autoMapInputData') {
-						// Use input data directly
-						body = items[i].json;
-					} else {
-						// Manual field mapping
-						const createFieldsData = this.getNodeParameter('createFields', i, {}) as any;
-						const fieldArray = createFieldsData.field || [];
+					if (fieldArray.length === 0) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'Please add at least one field to create the record',
+							{ itemIndex: i },
+						);
+					}
 
-						if (fieldArray.length === 0) {
-							throw new NodeOperationError(
-								this.getNode(),
-								'Please specify at least one field to create the record',
-								{ itemIndex: i },
-							);
-						}
-
-						for (const field of fieldArray) {
-							body[field.name] = field.value;
-						}
+					const body: any = {};
+					for (const field of fieldArray) {
+						body[field.name] = field.value;
 					}
 
 					responseData = await fireberryApiRequest.call(
