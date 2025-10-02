@@ -104,6 +104,22 @@ export const OBJECT_TYPE_MAP: { [key: string]: number } = {
 };
 
 /**
+ * Fireberry field type mapping (systemFieldTypeId to n8n field type)
+ */
+export const FIELD_TYPE_MAP: { [key: string]: { n8nType: string; description: string } } = {
+	'3f62f67a-1cee-403a-bec6-aa02a9804edb': { n8nType: 'string', description: 'Phone' },
+	'a1e7ed6f-5083-477b-b44c-9943a6181359': { n8nType: 'string', description: 'String' },
+	'6a34bfe3-fece-4da1-9136-a7b1e5ae3319': { n8nType: 'number', description: 'Number' },
+	'b4919f2e-2996-48e4-a03c-ba39fb64386c': { n8nType: 'options', description: 'Picklist' },
+	'ce972d02-5013-46d4-9d1d-f09df1ac346a': { n8nType: 'dateTime', description: 'DateTime' },
+	'c713d2f7-8fa9-43c3-8062-f07486eaf567': { n8nType: 'string', description: 'Email' },
+	'c820d32f-44df-4c2a-9c1e-18734e864fd5': { n8nType: 'string', description: 'URL' },
+	'80108f9d-1e75-40fa-9fa9-02be4ddc1da1': { n8nType: 'string', description: 'Textarea' },
+	'83bf530c-e04c-462b-9ffc-a46f750fc072': { n8nType: 'dateTime', description: 'Date' },
+	'a8fcdf65-91bc-46fd-82f6-1234758345a1': { n8nType: 'string', description: 'Lookup/Reference' },
+};
+
+/**
  * Map resource name to Fireberry object type number
  */
 export function mapObjectTypeToNumber(objectType: string): number {
@@ -135,42 +151,32 @@ export function validateQuery(query: string): boolean {
 }
 
 /**
- * Load available fields for an object type dynamically
- * This function fetches the metadata/schema from Fireberry API
+ * Load available fields for an object type dynamically from metadata API
  */
 export async function loadObjectFields(
 	this: ILoadOptionsFunctions,
 	objectType: string,
 ): Promise<INodePropertyOptions[]> {
 	try {
-		const objectTypeId = mapObjectTypeToNumber(objectType);
+		const fieldsData = await getObjectFieldsFromMetadata.call(this, objectType);
 
-		// Query to get a sample record with all fields
-		const response = await fireberryApiRequest.call(
-			this,
-			'POST',
-			'/api/query',
-			{
-				objecttype: objectTypeId,
-				page_size: 1,
-				page_number: 1,
-				fields: '*',
-			},
-		);
-
-		const sampleRecord = response.value?.[0] || response.data?.[0];
-
-		if (!sampleRecord) {
-			// Return common fields if no records exist
+		if (!fieldsData || fieldsData.length === 0) {
 			return getDefaultFieldsForObjectType(objectType);
 		}
 
-		// Convert record keys to field options
-		const fields: INodePropertyOptions[] = Object.keys(sampleRecord)
-			.filter(key => !key.startsWith('_')) // Filter out internal fields
-			.map(key => ({
-				name: formatFieldName(key),
-				value: key,
+		// Convert metadata fields to options
+		const fields: INodePropertyOptions[] = fieldsData
+			.filter((field: any) => {
+				// Filter out system/internal fields
+				const fname = field.fieldName?.toLowerCase() || '';
+				return !fname.startsWith('_') &&
+				       !fname.includes('deleted') &&
+				       !fname.includes('created') &&
+				       !fname.includes('modified');
+			})
+			.map((field: any) => ({
+				name: field.label || formatFieldName(field.fieldName),
+				value: field.fieldName,
 			}))
 			.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -178,6 +184,63 @@ export async function loadObjectFields(
 	} catch (error) {
 		// Fallback to default fields if API call fails
 		return getDefaultFieldsForObjectType(objectType);
+	}
+}
+
+/**
+ * Get all fields for an object from Fireberry metadata API
+ */
+export async function getObjectFieldsFromMetadata(
+	this: ILoadOptionsFunctions,
+	objectType: string,
+): Promise<any[]> {
+	try {
+		const objectTypeId = mapObjectTypeToNumber(objectType);
+
+		const response = await fireberryApiRequest.call(
+			this,
+			'GET',
+			`/metadata/records/${objectTypeId}/fields`,
+			{},
+		);
+
+		// Response structure: [{ success: true, data: [...] }]
+		const data = response[0]?.data || response.data || [];
+		return data;
+	} catch (error) {
+		console.error('Error fetching metadata fields:', error);
+		return [];
+	}
+}
+
+/**
+ * Get picklist values for a specific field
+ */
+export async function getPicklistValues(
+	this: ILoadOptionsFunctions,
+	objectType: string,
+	fieldName: string,
+): Promise<INodePropertyOptions[]> {
+	try {
+		const objectTypeId = mapObjectTypeToNumber(objectType);
+
+		const response = await fireberryApiRequest.call(
+			this,
+			'GET',
+			`/metadata/records/${objectTypeId}/fields/${fieldName}/values`,
+			{},
+		);
+
+		// Response structure: [{ success: true, data: { values: [...] } }]
+		const values = response[0]?.data?.values || response.data?.values || [];
+
+		return values.map((v: any) => ({
+			name: v.name,
+			value: v.value,
+		}));
+	} catch (error) {
+		console.error('Error fetching picklist values:', error);
+		return [];
 	}
 }
 
