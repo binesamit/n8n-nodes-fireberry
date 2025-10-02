@@ -312,6 +312,13 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.7.3 (2025-10-02)
+- 🐛 **Query Fix**: Improved handling of multiple rules
+- ✅ combineOperation defaults to 'and' if not specified
+- 🔍 Debug log shows built query for troubleshooting
+- 📝 Search in resourceMapper works by default (n8n built-in feature)
+- 🎯 Query with 2+ fields should now work correctly
+
 ### v3.7.2 (2025-10-02)
 - 🐛 **Critical Fix**: Update operation now works correctly
 - ✅ Changed resourceMapper mode from 'update' to 'add'
