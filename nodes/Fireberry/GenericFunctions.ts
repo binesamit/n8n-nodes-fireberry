@@ -189,15 +189,46 @@ export async function loadObjectFields(
 }
 
 /**
+ * Get all available object types from Fireberry metadata API
+ */
+export async function getAllObjectTypes(
+	this: ILoadOptionsFunctions,
+): Promise<INodePropertyOptions[]> {
+	try {
+		const response = await fireberryApiRequest.call(
+			this,
+			'GET',
+			'/metadata/records',
+			{},
+		);
+
+		// Response structure: [{ success: true, data: [...] }]
+		const objects = response[0]?.data || response.data || [];
+
+		return objects.map((obj: any) => ({
+			name: `${obj.name} (${obj.systemName})`,
+			value: obj.objectType,
+		})).sort((a: any, b: any) => a.name.localeCompare(b.name));
+	} catch (error) {
+		console.error('Error fetching object types:', error);
+		// Fallback to basic types
+		return [
+			{ name: 'לקוח (Account)', value: '1' },
+			{ name: 'איש קשר (Contact)', value: '2' },
+			{ name: 'קריאת שירות (Cases)', value: '5' },
+			{ name: 'משימה (Task)', value: '10' },
+		];
+	}
+}
+
+/**
  * Get all fields for an object from Fireberry metadata API
  */
 export async function getObjectFieldsFromMetadata(
 	this: ILoadOptionsFunctions,
-	objectType: string,
+	objectTypeId: string,
 ): Promise<any[]> {
 	try {
-		const objectTypeId = mapObjectTypeToNumber(objectType);
-
 		const response = await fireberryApiRequest.call(
 			this,
 			'GET',

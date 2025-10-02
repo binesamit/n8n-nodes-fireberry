@@ -9,32 +9,11 @@ import {
 } from 'n8n-workflow';
 
 import {
-	accountOperations,
-	accountFields
-} from './descriptions/AccountDescription';
-import {
-	contactOperations,
-	contactFields
-} from './descriptions/ContactDescription';
-import {
-	caseOperations,
-	caseFields
-} from './descriptions/CaseDescription';
-import {
-	taskOperations,
-	taskFields
-} from './descriptions/TaskDescription';
-import {
-	queryOperations,
-	queryFields
-} from './descriptions/QueryDescription';
-
-import {
 	fireberryApiRequest,
 	fireberryApiRequestAllItems,
-	mapObjectTypeToNumber,
-	validateQuery,
-	loadObjectFields,
+	getAllObjectTypes,
+	getObjectFieldsFromMetadata,
+	FIELD_TYPE_MAP,
 } from './GenericFunctions';
 
 export class Fireberry implements INodeType {
@@ -43,9 +22,9 @@ export class Fireberry implements INodeType {
 		name: 'fireberry',
 		icon: 'file:fireberry.svg',
 		group: ['transform'],
-		version: 1,
-		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Interact with Fireberry CRM (formerly Powerlink)',
+		version: 2,
+		subtitle: '={{$parameter["operation"] + ": " + $parameter["objectType"]}}',
+		description: 'Interact with Fireberry CRM (formerly Powerlink) - Dynamic support for all objects',
 		defaults: {
 			name: 'Fireberry',
 		},
@@ -58,70 +37,245 @@ export class Fireberry implements INodeType {
 			},
 		],
 		properties: [
+			// Object Type Selection
 			{
-				displayName: 'Resource',
-				name: 'resource',
+				displayName: 'Object Type',
+				name: 'objectType',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getAllObjects',
+				},
+				default: '',
+				required: true,
+				description: 'Select the Fireberry object type to work with',
+			},
+			// Operation Selection
+			{
+				displayName: 'Operation',
+				name: 'operation',
 				type: 'options',
 				noDataExpression: true,
 				options: [
 					{
-						name: 'Account',
-						value: 'account',
-						description: 'Work with accounts (companies)',
+						name: 'Create',
+						value: 'create',
+						description: 'Create a new record',
+						action: 'Create a record',
 					},
 					{
-						name: 'Contact',
-						value: 'contact',
-						description: 'Work with contacts (people)',
+						name: 'Update',
+						value: 'update',
+						description: 'Update a record',
+						action: 'Update a record',
 					},
 					{
-						name: 'Case',
-						value: 'case',
-						description: 'Work with cases (tickets/support)',
+						name: 'Delete',
+						value: 'delete',
+						description: 'Delete a record',
+						action: 'Delete a record',
 					},
 					{
-						name: 'Task',
-						value: 'task',
-						description: 'Work with tasks',
+						name: 'Get',
+						value: 'get',
+						description: 'Get a record by ID',
+						action: 'Get a record',
 					},
 					{
 						name: 'Query',
 						value: 'query',
-						description: 'Advanced query operations',
+						description: 'Query records with advanced filters',
+						action: 'Query records',
 					},
 				],
-				default: 'account',
+				default: 'create',
 			},
-			...accountOperations,
-			...accountFields,
-			...contactOperations,
-			...contactFields,
-			...caseOperations,
-			...caseFields,
-			...taskOperations,
-			...taskFields,
-			...queryOperations,
-			...queryFields,
+
+			// ==============================
+			// CREATE OPERATION - Dynamic Fields
+			// ==============================
+			{
+				displayName: 'Fields',
+				name: 'createFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: {
+					show: {
+						operation: ['create'],
+					},
+				},
+				options: [],
+				description: 'Fields to set on the new record. Available fields are loaded dynamically from your Fireberry account.',
+			},
+
+			// ==============================
+			// UPDATE & DELETE & GET - Record ID
+			// ==============================
+			{
+				displayName: 'Record ID',
+				name: 'recordId',
+				type: 'string',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['update', 'delete', 'get'],
+					},
+				},
+				default: '',
+				description: 'ID of the record to operate on',
+			},
+
+			// UPDATE OPERATION - Dynamic Fields
+			{
+				displayName: 'Update Fields',
+				name: 'updateFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: {
+					show: {
+						operation: ['update'],
+					},
+				},
+				options: [],
+				description: 'Fields to update on the record',
+			},
+
+			// ==============================
+			// QUERY OPERATION
+			// ==============================
+			{
+				displayName: 'Return All',
+				name: 'returnAll',
+				type: 'boolean',
+				displayOptions: {
+					show: {
+						operation: ['query'],
+					},
+				},
+				default: false,
+				description: 'Whether to return all results or only up to a given limit',
+			},
+			{
+				displayName: 'Limit',
+				name: 'limit',
+				type: 'number',
+				displayOptions: {
+					show: {
+						operation: ['query'],
+						returnAll: [true],
+					},
+				},
+				typeOptions: {
+					minValue: 1,
+				},
+				default: 100,
+				description: 'Max number of results to return',
+			},
+			{
+				displayName: 'Page Size',
+				name: 'pageSize',
+				type: 'number',
+				displayOptions: {
+					show: {
+						operation: ['query'],
+						returnAll: [false],
+					},
+				},
+				typeOptions: {
+					minValue: 1,
+					maxValue: 100,
+				},
+				default: 50,
+				description: 'Number of results per page',
+			},
+			{
+				displayName: 'Page Number',
+				name: 'pageNumber',
+				type: 'number',
+				displayOptions: {
+					show: {
+						operation: ['query'],
+						returnAll: [false],
+					},
+				},
+				typeOptions: {
+					minValue: 1,
+				},
+				default: 1,
+				description: 'Page number to retrieve',
+			},
+			{
+				displayName: 'Query',
+				name: 'query',
+				type: 'string',
+				displayOptions: {
+					show: {
+						operation: ['query'],
+					},
+				},
+				default: '',
+				placeholder: 'e.g., accountname eq \'Test\' and telephone1 ne null',
+				description: 'OData-style query filter. Leave empty to get all records.',
+			},
+			{
+				displayName: 'Fields',
+				name: 'fields',
+				type: 'string',
+				displayOptions: {
+					show: {
+						operation: ['query'],
+					},
+				},
+				default: '*',
+				description: 'Comma-separated list of fields to return. Use * for all fields.',
+			},
+			{
+				displayName: 'Additional Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				displayOptions: {
+					show: {
+						operation: ['query'],
+					},
+				},
+				options: [
+					{
+						displayName: 'Sort By',
+						name: 'sortBy',
+						type: 'string',
+						default: '',
+						description: 'Field name to sort by',
+					},
+					{
+						displayName: 'Sort Type',
+						name: 'sortType',
+						type: 'options',
+						options: [
+							{
+								name: 'Ascending',
+								value: 'asc',
+							},
+							{
+								name: 'Descending',
+								value: 'desc',
+							},
+						],
+						default: 'desc',
+						description: 'Sort direction',
+					},
+				],
+			},
 		],
 	};
 
 	methods = {
 		loadOptions: {
-			// Load dynamic fields for Account
-			async getAccountFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				return await loadObjectFields.call(this, 'account');
-			},
-			// Load dynamic fields for Contact
-			async getContactFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				return await loadObjectFields.call(this, 'contact');
-			},
-			// Load dynamic fields for Case
-			async getCaseFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				return await loadObjectFields.call(this, 'case');
-			},
-			// Load dynamic fields for Task
-			async getTaskFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				return await loadObjectFields.call(this, 'task');
+			// Load all available object types from Fireberry
+			async getAllObjects(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return await getAllObjectTypes.call(this);
 			},
 		},
 	};
@@ -129,18 +283,125 @@ export class Fireberry implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const resource = this.getNodeParameter('resource', 0) as string;
-		const operation = this.getNodeParameter('operation', 0) as string;
 
 		for (let i = 0; i < items.length; i++) {
 			try {
+				const objectType = this.getNodeParameter('objectType', i) as string;
+				const operation = this.getNodeParameter('operation', i) as string;
 				let responseData;
 
-				// Use generic handler for all CRUD resources
-				if (['account', 'contact', 'case', 'task'].includes(resource)) {
-					responseData = await handleResourceOperation.call(this, resource, operation, i);
-				} else if (resource === 'query') {
-					responseData = await handleQueryOperations.call(this, operation, i);
+				if (operation === 'create') {
+					const createFields = this.getNodeParameter('createFields', i, {}) as any;
+
+					if (Object.keys(createFields).length === 0) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'Please specify at least one field to create the record',
+							{ itemIndex: i },
+						);
+					}
+
+					// Process custom fields if present
+					if (createFields.customFieldsUi?.customFieldValues) {
+						const customFields = createFields.customFieldsUi.customFieldValues;
+						for (const field of customFields) {
+							createFields[field.fieldId] = field.fieldValue;
+						}
+						delete createFields.customFieldsUi;
+					}
+
+					responseData = await fireberryApiRequest.call(
+						this,
+						'POST',
+						`/api/record/${objectType}`,
+						createFields,
+					);
+
+				} else if (operation === 'update') {
+					const recordId = this.getNodeParameter('recordId', i) as string;
+					const updateFields = this.getNodeParameter('updateFields', i, {}) as any;
+
+					if (Object.keys(updateFields).length === 0) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'Please specify at least one field to update',
+							{ itemIndex: i },
+						);
+					}
+
+					// Process custom fields if present
+					if (updateFields.customFieldsUi?.customFieldValues) {
+						const customFields = updateFields.customFieldsUi.customFieldValues;
+						for (const field of customFields) {
+							updateFields[field.fieldId] = field.fieldValue;
+						}
+						delete updateFields.customFieldsUi;
+					}
+
+					responseData = await fireberryApiRequest.call(
+						this,
+						'PUT',
+						`/api/record/${objectType}/${recordId}`,
+						updateFields,
+					);
+
+				} else if (operation === 'delete') {
+					const recordId = this.getNodeParameter('recordId', i) as string;
+
+					responseData = await fireberryApiRequest.call(
+						this,
+						'DELETE',
+						`/api/record/${objectType}/${recordId}`,
+					);
+
+				} else if (operation === 'get') {
+					const recordId = this.getNodeParameter('recordId', i) as string;
+
+					responseData = await fireberryApiRequest.call(
+						this,
+						'GET',
+						`/api/record/${objectType}/${recordId}`,
+					);
+
+				} else if (operation === 'query') {
+					const query = this.getNodeParameter('query', i, '') as string;
+					const fields = this.getNodeParameter('fields', i, '*') as string;
+					const returnAll = this.getNodeParameter('returnAll', i, false) as boolean;
+					const sortBy = this.getNodeParameter('options.sortBy', i, '') as string;
+					const sortType = this.getNodeParameter('options.sortType', i, 'desc') as string;
+
+					const body: any = {
+						objecttype: parseInt(objectType, 10),
+						fields,
+						...(query && { query }),
+						...(sortBy && { sort_by: sortBy }),
+						sort_type: sortType,
+					};
+
+					if (returnAll) {
+						const limit = this.getNodeParameter('limit', i, 0) as number;
+						responseData = await fireberryApiRequestAllItems.call(
+							this,
+							'/api/query',
+							body,
+							limit || undefined,
+						);
+					} else {
+						const pageSize = this.getNodeParameter('pageSize', i, 50) as number;
+						const pageNumber = this.getNodeParameter('pageNumber', i, 1) as number;
+
+						body.page_size = pageSize;
+						body.page_number = pageNumber;
+
+						const response = await fireberryApiRequest.call(
+							this,
+							'POST',
+							'/api/query',
+							body,
+						);
+
+						responseData = response.value || response.data || response;
+					}
 				}
 
 				const executionData = this.helpers.constructExecutionMetaData(
@@ -162,160 +423,5 @@ export class Fireberry implements INodeType {
 		}
 
 		return [returnData];
-	}
-
-}
-
-/**
- * Generic handler for all resource operations (Account, Contact, Case, Task)
- * This eliminates code duplication across resources
- */
-async function handleResourceOperation(
-	this: IExecuteFunctions,
-	resource: string,
-	operation: string,
-	itemIndex: number,
-): Promise<any> {
-	const objectTypeId = mapObjectTypeToNumber(resource);
-
-	if (operation === 'create') {
-		// Get required field based on resource type
-		const requiredFieldMap: { [key: string]: string } = {
-			account: 'accountname',
-			contact: 'firstname',
-			case: 'title',
-			task: 'subject',
-		};
-
-		const requiredField = requiredFieldMap[resource];
-		const body: any = {
-			[requiredField]: this.getNodeParameter(requiredField, itemIndex),
-		};
-
-		// Add all optional fields that are not required
-		const optionalFields = [
-			'lastname', 'emailaddress1', 'mobilephone1', 'telephone1', 'jobtitle', 'accountid',
-			'telephone2', 'telephone3', 'idnumber', 'websiteurl', 'billingcity', 'billingstreet',
-			'billingpostalcode', 'fax1', 'firstname', 'revenue', 'numberofemployees',
-			'description', 'prioritycode', 'statecode', 'customerid',
-			'scheduledstart', 'scheduledend', 'regardingobjectid'
-		];
-
-		for (const field of optionalFields) {
-			try {
-				const value = this.getNodeParameter(field, itemIndex, undefined);
-				if (value !== undefined && value !== '') {
-					body[field] = value;
-				}
-			} catch (error) {
-				// Field doesn't exist for this resource, skip it
-			}
-		}
-
-		// Add additional fields
-		const additionalFields = this.getNodeParameter('additionalFields', itemIndex, {}) as any;
-		Object.assign(body, additionalFields);
-
-		return await fireberryApiRequest.call(
-			this,
-			'POST',
-			`/api/record/${objectTypeId}`,
-			body,
-		);
-
-	} else if (operation === 'update') {
-		const recordId = this.getNodeParameter('recordId', itemIndex) as string;
-		const updateFields = this.getNodeParameter('updateFields', itemIndex, {}) as any;
-
-		if (Object.keys(updateFields).length === 0) {
-			throw new NodeOperationError(
-				this.getNode(),
-				'Please specify at least one field to update',
-				{ itemIndex },
-			);
-		}
-
-		return await fireberryApiRequest.call(
-			this,
-			'PUT',
-			`/api/record/${objectTypeId}/${recordId}`,
-			updateFields,
-		);
-
-	} else if (operation === 'delete') {
-		const recordId = this.getNodeParameter('recordId', itemIndex) as string;
-
-		return await fireberryApiRequest.call(
-			this,
-			'DELETE',
-			`/api/record/${objectTypeId}/${recordId}`,
-		);
-
-	} else if (operation === 'get') {
-		const recordId = this.getNodeParameter('recordId', itemIndex) as string;
-
-		return await fireberryApiRequest.call(
-			this,
-			'GET',
-			`/api/record/${objectTypeId}/${recordId}`,
-		);
-	}
-
-	throw new NodeOperationError(
-		this.getNode(),
-		`Unknown operation: ${operation}`,
-		{ itemIndex },
-	);
-}
-
-async function handleQueryOperations(
-	this: IExecuteFunctions,
-	operation: string,
-	itemIndex: number,
-): Promise<any> {
-	const objectType = this.getNodeParameter('objectType', itemIndex) as string;
-	const objectTypeId = mapObjectTypeToNumber(objectType);
-	const query = this.getNodeParameter('query', itemIndex, '') as string;
-	const fields = this.getNodeParameter('fields', itemIndex, '*') as string;
-	const returnAll = this.getNodeParameter('returnAll', itemIndex, false) as boolean;
-	const sortBy = this.getNodeParameter('options.sortBy', itemIndex, '') as string;
-	const sortType = this.getNodeParameter('options.sortType', itemIndex, 'desc') as string;
-
-	// Validate query syntax
-	validateQuery(query);
-
-	const body: any = {
-		objecttype: objectTypeId,
-		fields,
-		...(query && { query }),
-		...(sortBy && { sort_by: sortBy }),
-		sort_type: sortType,
-	};
-
-	if (returnAll) {
-		// Use automatic pagination
-		const limit = this.getNodeParameter('limit', itemIndex, 0) as number;
-		return await fireberryApiRequestAllItems.call(
-			this,
-			'/api/query',
-			body,
-			limit || undefined,
-		);
-	} else {
-		// Manual pagination
-		const pageSize = this.getNodeParameter('pageSize', itemIndex, 50) as number;
-		const pageNumber = this.getNodeParameter('pageNumber', itemIndex, 1) as number;
-
-		body.page_size = pageSize;
-		body.page_number = pageNumber;
-
-		const response = await fireberryApiRequest.call(
-			this,
-			'POST',
-			'/api/query',
-			body,
-		);
-
-		return response.value || response.data || response;
 	}
 }
