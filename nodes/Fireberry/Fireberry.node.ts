@@ -350,17 +350,16 @@ export class Fireberry implements INodeType {
 							{
 								displayName: 'Value',
 								name: 'value',
-								type: 'options',
-								typeOptions: {
-									loadOptionsMethod: 'getQueryFieldValue',
-								},
+								type: 'string',
 								displayOptions: {
 									hide: {
 										operator: ['isNull', 'isNotNull'],
 									},
 								},
 								default: '',
-								description: 'Select from available options (Picklist/Lookup) or enter manually',
+								placeholder: 'e.g., פתוח, 123, 2025-01-01, or fc7af7af-... (GUID)',
+								description: 'Value to compare against. For Picklist fields, enter the exact text (e.g., "פתוח"). For Lookup fields, enter the record ID (GUID). Use expressions {{ $json.fieldname }} for dynamic values, or switch to Advanced mode for easier selection.',
+								hint: 'Tip: For Picklist options or Lookup record IDs, check the Create/Update operation dropdowns to see available values, then copy the exact value here.',
 							},
 							{
 								displayName: 'Combine With',
@@ -544,120 +543,6 @@ export class Fireberry implements INodeType {
 				} catch (error) {
 					console.error('Error loading query fields:', error);
 					return [];
-				}
-			},
-
-			// Load values for selected field in query builder
-			async getQueryFieldValue(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				try {
-					const objectType = this.getNodeParameter('objectType') as string;
-					if (!objectType) {
-						return [{ name: 'Select Object Type first', value: '' }];
-					}
-
-					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
-					const allOptions: INodePropertyOptions[] = [];
-
-					// Load all Picklist and Lookup values
-					for (const field of fields) {
-						const fieldName = field.name || field.fieldName || '';
-						const displayName = field.displayName || field.label || fieldName;
-						const fieldType = field.systemFieldTypeId || '';
-
-						// Skip internal fields
-						if (!fieldName || fieldName.startsWith('_') || fieldName.toLowerCase().includes('deleted')) {
-							continue;
-						}
-
-						// Load Picklist values
-						if (fieldType === 'be84ccec-c7c9-47dd-81fc-91cc92c8fcd9') {
-							try {
-								const fieldDetailsResponse = await fireberryApiRequest.call(
-									this,
-									'GET',
-									`/metadata/records/${objectType}/fields/${fieldName}`,
-									{},
-								);
-
-								const picklistOptions = fieldDetailsResponse[0]?.data?.picklistOptions ||
-													   fieldDetailsResponse.data?.picklistOptions || [];
-
-								picklistOptions.forEach((option: any) => {
-									allOptions.push({
-										name: `[${displayName}] ${option.label || option.text}`,
-										value: option.text || option.label,
-										description: `Picklist: ${displayName}`,
-									});
-								});
-							} catch (error) {
-								// Skip on error
-							}
-						}
-						// Load Lookup values
-						else if (fieldType === 'a8fcdf65-91bc-46fd-82f6-1234758345a1') {
-							try {
-								const fieldDetailsResponse = await fireberryApiRequest.call(
-									this,
-									'GET',
-									`/metadata/records/${objectType}/fields/${fieldName}`,
-									{},
-								);
-
-								const fieldObjectType = fieldDetailsResponse[0]?.data?.fieldObjectType ||
-													   fieldDetailsResponse.data?.fieldObjectType;
-
-								if (fieldObjectType) {
-									const recordsResponse = await fireberryApiRequest.call(
-										this,
-										'POST',
-										'/api/query',
-										{
-											objecttype: parseInt(fieldObjectType, 10),
-											fields: '*',
-											page_size: 50,
-											page_number: 1,
-										},
-									);
-
-									const records = recordsResponse.value || recordsResponse.data || [];
-									const primaryField = recordsResponse.primaryField || 'name';
-									const primaryKey = recordsResponse.primaryKey || 'id';
-
-									records.forEach((record: any) => {
-										const recordId = record[primaryKey] || record.id;
-										const recordName = record[primaryField] || recordId;
-
-										allOptions.push({
-											name: `[${displayName}] ${recordName}`,
-											value: recordId,
-											description: `Lookup: ${displayName}`,
-										});
-									});
-								}
-							} catch (error) {
-								// Skip on error
-							}
-						}
-					}
-
-					// Sort by name
-					allOptions.sort((a, b) => a.name.localeCompare(b.name));
-
-					if (allOptions.length === 0) {
-						return [{ name: 'No dropdown values available - enter value manually', value: '' }];
-					}
-
-					// Add manual entry option at the top
-					allOptions.unshift({
-						name: '--- Enter value manually (for text/number fields) ---',
-						value: '',
-						description: 'Leave empty to enter a custom value',
-					});
-
-					return allOptions;
-				} catch (error) {
-					console.error('Error loading field values:', error);
-					return [{ name: 'Error - enter manually', value: '' }];
 				}
 			},
 		},

@@ -312,6 +312,13 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.5.5 (2025-10-02)
+- 🐛 **Critical Fix**: Changed Value field back to string input (was blocking manual entry)
+- ✨ Value now supports manual text entry for all field types
+- ✨ Added helpful placeholder and hints for Picklist and Lookup fields
+- 📝 Improved instructions: recommends checking Create/Update dropdowns for available values
+- 🎨 Better UX for text/number/date fields
+
 ### v3.5.4 (2025-10-02)
 - 🐛 **Critical Fix**: Fixed operator dropdown triggering Expression mode (again!)
 - 🐛 Fixed Value dropdown not loading options
