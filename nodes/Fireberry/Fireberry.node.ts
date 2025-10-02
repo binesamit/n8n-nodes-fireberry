@@ -597,9 +597,7 @@ export class Fireberry implements INodeType {
 				}
 
 				try {
-					// Get the current rule's field value
-					// Note: In fixedCollection, we can't directly access the current item's field value
-					// So we'll load all Picklist fields and their values
+					// Get all fields metadata
 					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
 
 					if (!fields || fields.length === 0) {
@@ -608,7 +606,7 @@ export class Fireberry implements INodeType {
 
 					const picklistOptions: INodePropertyOptions[] = [];
 
-					// Find all Picklist fields and their values
+					// Find all Picklist fields and load their values
 					for (const field of fields) {
 						const fieldType = field.systemFieldTypeId || '';
 						const fieldName = field.name || field.fieldName || '';
@@ -616,16 +614,20 @@ export class Fireberry implements INodeType {
 
 						// Check if it's a Picklist field (systemFieldTypeId = 3)
 						if (fieldType === 3 || fieldType === '3') {
-							const picklistValues = field.picklistValues || [];
+							try {
+								// Load values for this specific Picklist field
+								const values = await getPicklistValues.call(this, objectType, fieldName);
 
-							for (const picklistValue of picklistValues) {
-								const valueText = picklistValue.text || picklistValue.name || picklistValue.value || '';
-								if (valueText) {
+								// Add each value with field name prefix
+								for (const val of values) {
 									picklistOptions.push({
-										name: `[${displayName}] ${valueText}`,
-										value: valueText,
+										name: `[${displayName}] ${val.name}`,
+										value: val.value,
 									});
 								}
+							} catch (error) {
+								console.error(`Error loading values for Picklist field ${fieldName}:`, error);
+								// Continue with other fields
 							}
 						}
 					}

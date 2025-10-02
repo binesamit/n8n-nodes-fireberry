@@ -312,6 +312,12 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.6.1 (2025-10-02)
+- 🐛 **Critical Fix**: Picklist dropdown now loads values correctly
+- ✨ Uses dedicated API endpoint for each Picklist field
+- ✨ Properly loads all available Picklist values from Fireberry
+- 🎯 Each Picklist field queried individually for accurate data
+
 ### v3.6.0 (2025-10-02)
 - 🎉 **Major Feature**: Picklist dropdown support in Query Builder!
 - ✨ New "Value Type" option: "Enter Manually" or "Select from Picklist"
