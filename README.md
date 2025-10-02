@@ -312,6 +312,14 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.5.3 (2025-10-02)
+- 🎉 **Major Feature**: Dynamic Value dropdown in Query Builder!
+- ✨ Value field automatically detects Picklist and Lookup fields
+- ✨ Picklist fields show dropdown with options (e.g., "פתוח", "סגור")
+- ✨ Lookup fields show dropdown with related records (Contacts, Accounts, Users)
+- ✨ Smart field type detection using metadata
+- 🎨 Same UX as Create/Update operations!
+
 ### v3.5.1 (2025-10-02)
 - 🐛 **Critical Fix**: Fixed query operators to use Fireberry's correct syntax (`=`, `!=`, `>`, `<` instead of `eq`, `ne`, `gt`, `lt`)
 - 🐛 Fixed "One or more operators are invalid" error in Simple Query Builder
