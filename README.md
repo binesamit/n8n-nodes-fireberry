@@ -312,6 +312,13 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.7.2 (2025-10-02)
+- 🐛 **Critical Fix**: Update operation now works correctly
+- ✅ Changed resourceMapper mode from 'update' to 'add'
+- ✅ Fixes "No field that can be used for matching found" error
+- 📝 Update uses Record ID field (already exists), no matching needed
+- 🔍 Debug logs remain active for troubleshooting
+
 ### v3.7.1 (2025-10-02)
 - 🔍 **Debug logs for Update operation** - troubleshoot Update issues
 - 📊 Logs show: recordId, columnsData, body to send, API URL

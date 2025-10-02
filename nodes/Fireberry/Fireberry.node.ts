@@ -163,7 +163,7 @@ export class Fireberry implements INodeType {
 					loadOptionsDependsOn: ['objectType'],
 					resourceMapper: {
 						resourceMapperMethod: 'getColumns',
-						mode: 'update',
+						mode: 'add',
 						fieldWords: {
 							singular: 'field',
 							plural: 'fields',
