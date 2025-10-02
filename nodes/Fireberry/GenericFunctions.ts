@@ -117,6 +117,7 @@ export const FIELD_TYPE_MAP: { [key: string]: { n8nType: string; description: st
 	'80108f9d-1e75-40fa-9fa9-02be4ddc1da1': { n8nType: 'string', description: 'Textarea' },
 	'83bf530c-e04c-462b-9ffc-a46f750fc072': { n8nType: 'dateTime', description: 'Date' },
 	'a8fcdf65-91bc-46fd-82f6-1234758345a1': { n8nType: 'string', description: 'Lookup/Reference' },
+	'ed2ad39d-32fc-4585-8f5b-2e93463f050a': { n8nType: 'string', description: 'File/Document' },
 };
 
 /**
