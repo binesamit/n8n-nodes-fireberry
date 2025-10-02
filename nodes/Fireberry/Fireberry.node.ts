@@ -6,6 +6,7 @@ import {
 	NodeOperationError,
 	ILoadOptionsFunctions,
 	INodePropertyOptions,
+	INodeProperties,
 } from 'n8n-workflow';
 
 import {
@@ -91,21 +92,72 @@ export class Fireberry implements INodeType {
 			},
 
 			// ==============================
-			// CREATE OPERATION - Fields as JSON
+			// CREATE OPERATION - Resource Mapper
 			// ==============================
 			{
-				displayName: 'Fields (JSON)',
-				name: 'createFieldsJson',
-				type: 'json',
-				default: '{\n  "accountname": "Example Company",\n  "telephone1": "03-1234567",\n  "emailaddress1": "info@example.com"\n}',
+				displayName: 'Fields to Send',
+				name: 'fieldsToSend',
+				type: 'options',
 				displayOptions: {
 					show: {
 						operation: ['create'],
 					},
 				},
-				description: 'Enter all record fields as a JSON object. Field names must match exactly (case-sensitive). Click the expression icon (=) to use expressions.',
-				placeholder: '{"fieldName": "value", "anotherField": "another value"}',
-				hint: 'Available fields can be found in Fireberry under Settings → Customization for each object type',
+				options: [
+					{
+						name: 'Auto-Map Input Data',
+						value: 'autoMapInputData',
+						description: 'Use all fields from input data automatically',
+					},
+					{
+						name: 'Define Below for Each Field',
+						value: 'defineBelow',
+						description: 'Set each field manually',
+					},
+				],
+				default: 'defineBelow',
+			},
+			{
+				displayName: 'Fields',
+				name: 'createFields',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: {
+					show: {
+						operation: ['create'],
+						fieldsToSend: ['defineBelow'],
+					},
+				},
+				options: [
+					{
+						name: 'field',
+						displayName: 'Field',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'name',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getObjectFields',
+								},
+								default: '',
+								description: 'Choose a field',
+							},
+							{
+								displayName: 'Field Value',
+								name: 'value',
+								type: 'string',
+								default: '',
+								description: 'Value to set',
+							},
+						],
+					},
+				],
+				description: 'Map fields one by one',
 			},
 
 			// ==============================
@@ -125,20 +177,47 @@ export class Fireberry implements INodeType {
 				description: 'ID of the record to operate on',
 			},
 
-			// UPDATE OPERATION - Fields as JSON
+			// UPDATE OPERATION - Fields
 			{
-				displayName: 'Update Fields (JSON)',
-				name: 'updateFieldsJson',
-				type: 'json',
-				default: '{\n  "accountname": "Updated Company Name",\n  "telephone1": "03-9876543"\n}',
+				displayName: 'Update Fields',
+				name: 'updateFields',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				placeholder: 'Add Field',
+				default: {},
 				displayOptions: {
 					show: {
 						operation: ['update'],
 					},
 				},
-				description: 'Enter fields to update as a JSON object. Only include fields you want to change.',
-				placeholder: '{"fieldName": "new value"}',
-				hint: 'Only fields included in this JSON will be updated. Other fields remain unchanged.',
+				options: [
+					{
+						name: 'field',
+						displayName: 'Field',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'name',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getObjectFields',
+								},
+								default: '',
+								description: 'Choose a field to update',
+							},
+							{
+								displayName: 'Field Value',
+								name: 'value',
+								type: 'string',
+								default: '',
+								description: 'New value for the field',
+							},
+						],
+					},
+				],
+				description: 'Specify fields to update. Only these fields will be changed.',
 			},
 
 			// ==============================
@@ -277,6 +356,28 @@ export class Fireberry implements INodeType {
 			async getAllObjects(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				return await getAllObjectTypes.call(this);
 			},
+
+			// Load fields for selected object type
+			async getObjectFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const objectType = this.getNodeParameter('objectType') as string;
+
+				if (!objectType) {
+					return [];
+				}
+
+				try {
+					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
+
+					return fields.map((field: any) => ({
+						name: field.displayName || field.name,
+						value: field.name,
+						description: `${field.systemFieldTypeName || field.systemFieldTypeId}`,
+					})).sort((a: any, b: any) => a.name.localeCompare(b.name));
+				} catch (error) {
+					console.error('Error loading fields:', error);
+					return [];
+				}
+			},
 		},
 	};
 
@@ -291,27 +392,28 @@ export class Fireberry implements INodeType {
 				let responseData;
 
 				if (operation === 'create') {
-					const createFieldsJson = this.getNodeParameter('createFieldsJson', i) as string;
+					const fieldsToSend = this.getNodeParameter('fieldsToSend', i) as string;
+					let body: any = {};
 
-					let body: any;
-					try {
-						body = typeof createFieldsJson === 'string'
-							? JSON.parse(createFieldsJson)
-							: createFieldsJson;
-					} catch (error) {
-						throw new NodeOperationError(
-							this.getNode(),
-							'Invalid JSON in Fields. Please check your JSON syntax.',
-							{ itemIndex: i },
-						);
-					}
+					if (fieldsToSend === 'autoMapInputData') {
+						// Use input data directly
+						body = items[i].json;
+					} else {
+						// Manual field mapping
+						const createFieldsData = this.getNodeParameter('createFields', i, {}) as any;
+						const fieldArray = createFieldsData.field || [];
 
-					if (!body || Object.keys(body).length === 0) {
-						throw new NodeOperationError(
-							this.getNode(),
-							'Please specify at least one field to create the record',
-							{ itemIndex: i },
-						);
+						if (fieldArray.length === 0) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Please specify at least one field to create the record',
+								{ itemIndex: i },
+							);
+						}
+
+						for (const field of fieldArray) {
+							body[field.name] = field.value;
+						}
 					}
 
 					responseData = await fireberryApiRequest.call(
@@ -323,27 +425,20 @@ export class Fireberry implements INodeType {
 
 				} else if (operation === 'update') {
 					const recordId = this.getNodeParameter('recordId', i) as string;
-					const updateFieldsJson = this.getNodeParameter('updateFieldsJson', i) as string;
+					const updateFieldsData = this.getNodeParameter('updateFields', i, {}) as any;
+					const fieldArray = updateFieldsData.field || [];
 
-					let body: any;
-					try {
-						body = typeof updateFieldsJson === 'string'
-							? JSON.parse(updateFieldsJson)
-							: updateFieldsJson;
-					} catch (error) {
-						throw new NodeOperationError(
-							this.getNode(),
-							'Invalid JSON in Update Fields. Please check your JSON syntax.',
-							{ itemIndex: i },
-						);
-					}
-
-					if (!body || Object.keys(body).length === 0) {
+					if (fieldArray.length === 0) {
 						throw new NodeOperationError(
 							this.getNode(),
 							'Please specify at least one field to update',
 							{ itemIndex: i },
 						);
+					}
+
+					const body: any = {};
+					for (const field of fieldArray) {
+						body[field.name] = field.value;
 					}
 
 					responseData = await fireberryApiRequest.call(
