@@ -312,6 +312,15 @@ Example: For `primarycontactid` (Primary Contact field):
 
 ## Changelog
 
+### v3.7.0 (2025-10-02)
+- 🎯 **Simplified Query Builder** - Back to reliable manual input
+- ❌ Removed problematic "Value Type" dropdown (wasn't working in fixedCollection)
+- ✅ Simple string input for all value types - works reliably
+- 📝 Improved hints: explains how to find exact Picklist values
+- 💡 Workaround: Use Create/Update operation to see available Picklist values, then copy to Query
+- 🐛 Fixed: Query Builder now works consistently for all field types
+- 🔍 Kept debug log for query building (helps troubleshooting)
+
 ### v3.6.2 (2025-10-02)
 - 🔍 **Debug Version**: Added detailed console logging for Picklist dropdown
 - 🐛 Troubleshooting "No data" issue in Picklist Value dropdown

@@ -348,60 +348,18 @@ export class Fireberry implements INodeType {
 								description: 'Comparison operator',
 							},
 							{
-								displayName: 'Value Type',
-								name: 'valueType',
-								type: 'options',
-								options: [
-									{
-										name: 'Enter Manually',
-										value: 'manual',
-									},
-									{
-										name: 'Select from Picklist',
-										value: 'picklist',
-									},
-								],
-								default: 'manual',
-								displayOptions: {
-									hide: {
-										operator: ['isNull', 'isNotNull'],
-									},
-								},
-								description: 'How to specify the value',
-							},
-							{
 								displayName: 'Value',
 								name: 'value',
 								type: 'string',
 								displayOptions: {
-									show: {
-										valueType: ['manual'],
-									},
 									hide: {
 										operator: ['isNull', 'isNotNull'],
 									},
 								},
 								default: '',
 								placeholder: 'e.g., פתוח, 123, 2025-01-01, or fc7af7af-... (GUID)',
-								description: 'Value to compare against. Enter text, numbers, dates (YYYY-MM-DD), or GUIDs. Use expressions {{ $json.fieldname }} for dynamic values.',
-							},
-							{
-								displayName: 'Picklist Value',
-								name: 'value',
-								type: 'options',
-								typeOptions: {
-									loadOptionsMethod: 'getPicklistValuesForQuery',
-								},
-								displayOptions: {
-									show: {
-										valueType: ['picklist'],
-									},
-									hide: {
-										operator: ['isNull', 'isNotNull'],
-									},
-								},
-								default: '',
-								description: 'Select a value from the Picklist field options',
+								description: 'Value to compare against. Enter text exactly as it appears in Fireberry (e.g., "פתוח" for status). For numbers enter without quotes (123), for dates use YYYY-MM-DD format. Use expressions {{ $json.fieldname }} for dynamic values, or switch to Advanced mode for complex queries.',
+								hint: 'Tip: To find exact Picklist values, go to Create/Update operation for this Object Type, select the Picklist field, and copy the exact text from the dropdown. Then paste it here.',
 							},
 							{
 								displayName: 'Combine With',
@@ -584,69 +542,6 @@ export class Fireberry implements INodeType {
 					return options;
 				} catch (error) {
 					console.error('Error loading query fields:', error);
-					return [];
-				}
-			},
-
-			// Load Picklist values for the selected field in Query Builder
-			async getPicklistValuesForQuery(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const objectType = this.getNodeParameter('objectType') as string;
-
-				console.log('getPicklistValuesForQuery called with objectType:', objectType);
-
-				if (!objectType) {
-					console.log('No objectType - returning empty array');
-					return [];
-				}
-
-				try {
-					// Get all fields metadata
-					const fields = await getObjectFieldsFromMetadata.call(this, objectType);
-
-					console.log('Fields loaded:', fields?.length || 0);
-
-					if (!fields || fields.length === 0) {
-						console.log('No fields found - returning empty array');
-						return [];
-					}
-
-					const picklistOptions: INodePropertyOptions[] = [];
-
-					// Find all Picklist fields and load their values
-					for (const field of fields) {
-						const fieldType = field.systemFieldTypeId || '';
-						const fieldName = field.name || field.fieldName || '';
-						const displayName = field.displayName || field.label || fieldName;
-
-						// Check if it's a Picklist field (systemFieldTypeId = 3)
-						if (fieldType === 3 || fieldType === '3') {
-							console.log(`Found Picklist field: ${fieldName} (${displayName}), type: ${fieldType}`);
-
-							try {
-								// Load values for this specific Picklist field
-								const values = await getPicklistValues.call(this, objectType, fieldName);
-
-								console.log(`Loaded ${values.length} values for ${fieldName}:`, values);
-
-								// Add each value with field name prefix
-								for (const val of values) {
-									picklistOptions.push({
-										name: `[${displayName}] ${val.name}`,
-										value: val.value,
-									});
-								}
-							} catch (error) {
-								console.error(`Error loading values for Picklist field ${fieldName}:`, error);
-								// Continue with other fields
-							}
-						}
-					}
-
-					console.log(`Total Picklist options: ${picklistOptions.length}`, picklistOptions);
-
-					return picklistOptions.sort((a, b) => a.name.localeCompare(b.name));
-				} catch (error) {
-					console.error('Error loading Picklist values for query:', error);
 					return [];
 				}
 			},
